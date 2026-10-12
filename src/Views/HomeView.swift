@@ -87,7 +87,7 @@ struct HomeView: View {
                 Button {
                     controller.requestUnlock()
                 } label: {
-                    Label("Desbloquear con el reto de \(settings.challengeDuration.text)", systemImage: "lock.fill")
+                    Label("Desbloquear con el reto de \(ChallengeDuration.settingsUnlock.text)", systemImage: "lock.fill")
                 }
             } else if controller.state.settings.isEnabled, let until = controller.state.settingsUnlockedUntil, until > controller.now {
                 Label("Desbloqueada hasta las \(until.formatted(date: .omitted, time: .shortened))", systemImage: "lock.open.fill")

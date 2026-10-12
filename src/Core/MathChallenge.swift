@@ -46,6 +46,10 @@ enum ChallengeDuration: Int, Codable, CaseIterable, Identifiable {
 
     var id: Int { rawValue }
 
+    /// Unlocking the settings (days, time, difficulty, duration) always takes one
+    /// minute, whatever duration the alarm's challenge has.
+    static let settingsUnlock = ChallengeDuration.oneMinute
+
     var seconds: TimeInterval { TimeInterval(rawValue * 60) }
 
     /// Short label for the picker.

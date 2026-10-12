@@ -77,7 +77,7 @@ No se puede usar mientras una alarma (o la prueba) está sonando o tiene el reto
 Por dentro: como una alarma semanal de AlarmKit no puede saltarse una semana, la de ese día se reemplaza por una alarma única para la semana siguiente; cuando ya pasó la hora desactivada, la app vuelve a ponerla semanal.
 
 ### Ajustes bloqueados
-Mientras la alarma está activada, **cambiar la hora, los días, la dificultad o la duración del reto, o desactivarla, también exige el reto** (luego quedan desbloqueados 5 minutos). El reto para desbloquear usa la dificultad y la duración que ya tenías. Así no puedes apagarla medio dormido desde los ajustes. Activarla es libre y, al hacerlo, tienes 5 minutos para ajustar la hora, los días, la dificultad y la duración antes de que se bloquee.
+Mientras la alarma está activada, **cambiar la hora, los días, la dificultad o la duración del reto, o desactivarla, también exige el reto** (luego quedan desbloqueados 5 minutos). El reto para desbloquear usa la dificultad que ya tenías, pero siempre dura 1 minuto, sea cual sea la duración elegida para la alarma. Así no puedes apagarla medio dormido desde los ajustes. Activarla es libre y, al hacerlo, tienes 5 minutos para ajustar la hora, los días, la dificultad y la duración antes de que se bloquee.
 
 **Mientras la alarma está sonando** (o ya sonó y el reto sigue pendiente, incluida la prueba), cualquier cambio de hora, días, dificultad, duración del reto o del interruptor **se ignora**, aunque los ajustes estén desbloqueados. Así cambiar la hora no puede silenciarla ni hacer que deje de volver: solo el reto la apaga.
 

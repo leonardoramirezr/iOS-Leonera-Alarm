@@ -206,6 +206,7 @@ struct LogicTests {
         }
         expect(ChallengeDuration.allCases.map(\.rawValue) == Array(1...10), "from 1 to 10 minutes")
         expect(ChallengeDuration.oneMinute.text == "1 minuto" && ChallengeDuration.threeMinutes.text == "3 minutos", "duration texts")
+        expect(ChallengeDuration.settingsUnlock.seconds == 60, "unlocking the settings always takes 1 minute")
     }
 
     static func schedule(_ weekdays: Set<Int>, _ hour: Int, _ minute: Int) -> [Int: AlarmTime] {
