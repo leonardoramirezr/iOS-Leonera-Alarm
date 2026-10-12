@@ -3,12 +3,13 @@ name: Build iOS app
 on:
   push:
     branches: ["**"]
-    tags: ["v*"]
   workflow_dispatch:
 
+# Builds of the same branch run one after another (none is cancelled), so every
+# push to main gets its own version number.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -19,6 +20,29 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
+
+      # main  -> 0.x.0, the middle number goes up by 1 on each push (starts at 0.1.0),
+      #          published as the stable release marked Latest.
+      # other -> build-<run number>-<7-char commit>, published as a pre-release.
+      - name: Choose tag
+        id: tag
+        run: |
+          git fetch --force --tags origin
+          last_minor="$(git tag --list '0.*.0' | sed -nE 's/^0\.([0-9]+)\.0$/\1/p' | sort -n | tail -1)"
+          last_minor="${last_minor:-0}"
+          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            # A re-run of the same commit keeps the version it already got.
+            existing="$(git tag --points-at "${GITHUB_SHA}" --list '0.*.0' | grep -E '^0\.[0-9]+\.0$' | sort -t. -k2,2n | tail -1 || true)"
+            tag="${existing:-0.$((last_minor + 1)).0}"
+            echo "version=${tag}" >> "$GITHUB_OUTPUT"
+            echo "stable=true" >> "$GITHUB_OUTPUT"
+          else
+            tag="build-${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}"
+            echo "version=0.${last_minor}.0" >> "$GITHUB_OUTPUT"
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "Tag: ${tag}"
 
       - name: Show toolchain
         run: |
@@ -31,6 +55,7 @@ jobs:
 
       - name: Build unsigned IPA
         env:
+          VERSION: ${{ steps.tag.outputs.version }}
           BUILD_NUMBER: ${{ github.run_number }}
         run: make build
 
@@ -41,23 +66,29 @@ jobs:
           path: build/Vigilia.ipa
           if-no-files-found: error
 
-      # Stable download link for the newest build of main:
-      # https://github.com/<owner>/<repo>/releases/download/latest/Vigilia.ipa
-      - name: Publish "latest" pre-release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release delete latest --yes --cleanup-tag || true
-          gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/latest" 2>/dev/null || true
-          gh release create latest build/Vigilia.ipa \
-            --target "${GITHUB_SHA}" \
-            --prerelease \
-            --title "Vigilia (última versión de main)" \
-            --notes "IPA sin firmar compilada automáticamente desde ${GITHUB_SHA::7}. Instálala con Sideloadly, AltStore o SideStore siguiendo el README."
-
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" build/Vigilia.ipa --title "Vigilia ${GITHUB_REF_NAME}" --generate-notes
+          TAG: ${{ steps.tag.outputs.tag }}
+          STABLE: ${{ steps.tag.outputs.stable }}
+        run: |
+          branch="${GITHUB_REF_NAME}"
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            # Re-run of a build that was already published: just refresh the IPA.
+            gh release upload "${TAG}" build/Vigilia.ipa --clobber
+          elif [ "${STABLE}" = "true" ]; then
+            gh release create "${TAG}" build/Vigilia.ipa \
+              --target "${GITHUB_SHA}" \
+              --latest \
+              --title "Vigilia ${TAG}" \
+              --generate-notes
+            # The old pre-release "latest" (before versioned releases) would only go stale.
+            gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+          else
+            gh release create "${TAG}" build/Vigilia.ipa \
+              --target "${GITHUB_SHA}" \
+              --prerelease \
+              --latest=false \
+              --title "Vigilia ${TAG} (${branch})" \
+              --notes "IPA sin firmar compilada desde la rama \`${branch}\`, commit ${GITHUB_SHA::7}. Es una build de prueba, no la versión estable."
+          fi
