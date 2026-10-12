@@ -77,7 +77,7 @@ No se puede usar mientras una alarma (o la prueba) está sonando o tiene el reto
 Por dentro: como una alarma semanal de AlarmKit no puede saltarse una semana, la de ese día se reemplaza por una alarma única para la semana siguiente; cuando ya pasó la hora desactivada, la app vuelve a ponerla semanal.
 
 ### Ajustes bloqueados
-Mientras la alarma está activada, **cambiar la hora, los días, la dificultad o la duración del reto, o desactivarla, también exige el reto** (luego quedan desbloqueados 5 minutos). El reto para desbloquear usa la dificultad y la duración que ya tenías. Así no puedes apagarla medio dormido desde los ajustes. Activarla es libre y, al hacerlo, tienes 5 minutos para ajustar la hora, los días, la dificultad y la duración antes de que se bloquee.
+Mientras la alarma está activada, **cambiar la hora, los días, la dificultad o la duración del reto, o desactivarla, también exige el reto** (luego quedan desbloqueados 5 minutos). El reto para desbloquear usa la dificultad que ya tenías, pero siempre dura 1 minuto, sea cual sea la duración elegida para la alarma. Así no puedes apagarla medio dormido desde los ajustes. Activarla es libre y, al hacerlo, tienes 5 minutos para ajustar la hora, los días, la dificultad y la duración antes de que se bloquee.
 
 **Mientras la alarma está sonando** (o ya sonó y el reto sigue pendiente, incluida la prueba), cualquier cambio de hora, días, dificultad, duración del reto o del interruptor **se ignora**, aunque los ajustes estén desbloqueados. Así cambiar la hora no puede silenciarla ni hacer que deje de volver: solo el reto la apaga.
 
@@ -126,12 +126,14 @@ El workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) corre e
 1. Ejecuta las pruebas de lógica (`make test`).
 2. Compila y empaqueta la app (`make build`).
 3. Sube `Vigilia.ipa` (sin firmar) como artefacto.
+4. La publica como Release con su tag (ver abajo).
 
 Para descargar la IPA:
-- **Desde Releases (más fácil):** cada push a `main` actualiza la pre-release `latest`, con enlace directo que también puedes abrir desde el iPhone:
-  `https://github.com/leonardoramirezr/vigilia-ios/releases/download/latest/Vigilia.ipa`
+- **Desde Releases (más fácil):** cada commit publica un Release con la IPA, etiquetado según su rama:
+  - **`main` → `0.x.0`** (`0.1.0`, `0.2.0`, `0.3.0`…): empieza en `0.1.0` y cada push a `main` sube el número del medio en 1. Es la versión estable, marcada como *Latest*. Enlace directo a la más reciente, que también puedes abrir desde el iPhone:
+    `https://github.com/leonardoramirezr/vigilia-ios/releases/latest/download/Vigilia.ipa`
+  - **Cualquier otra rama → `build-<N>-<commit>`** (por ejemplo `build-2-c1e51fa`): `<N>` es el número de ejecución del workflow (sube con cada build de cualquier rama) y `<commit>` los 7 primeros caracteres del hash, para saber exactamente qué código se compiló. Se publica como pre-release, nunca como *Latest*.
 - **Desde Actions:** pestaña *Actions* › la ejecución › *Artifacts* › `Vigilia-ipa` (viene dentro de un .zip).
-- **Versiones:** `git tag v1.0.0 && git push origin v1.0.0` crea un Release con la IPA.
 
 El repositorio es público, así que los minutos de Mac en GitHub Actions no cuestan nada.
 

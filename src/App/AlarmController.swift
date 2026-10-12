@@ -21,12 +21,13 @@ struct ChallengeRequest: Identifiable, Equatable {
     let difficulty: ChallengeDifficulty
     let duration: ChallengeDuration
 
-    /// Every challenge (waking up, turning the alarm off in advance, unlocking) uses
-    /// the difficulty and duration already chosen.
+    /// Every challenge uses the difficulty already chosen. Waking up and turning the
+    /// alarm off in advance last the chosen duration; unlocking the settings always
+    /// lasts `ChallengeDuration.settingsUnlock`.
     init(purpose: Purpose, settings: AlarmSettings) {
         self.purpose = purpose
         difficulty = settings.difficulty
-        duration = settings.challengeDuration
+        duration = purpose == .unlockSettings ? .settingsUnlock : settings.challengeDuration
     }
 
     var rules: ChallengeRules {
