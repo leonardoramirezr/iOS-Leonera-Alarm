@@ -127,12 +127,11 @@ El workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) corre e
 1. Elige la etiqueta (ver abajo) y los identificadores:
    - **Bundle ID:** `com.<dueño>.<repositorio>` en minúsculas (aquí `com.leonardoramirezr.vigilia-ios`) o, si existe, la variable de repositorio **`APP_BUNDLE_ID`** (*Settings › Secrets and variables › Actions › Variables*).
    - **Extensiones** (si algún día se agregan): `<bundle>.<sufijo>`, por ejemplo `com.leonardoramirezr.vigilia-ios.widget`.
-   - **App Group:** `group.<bundle>`. Antes de compilar se escribe literalmente en todos los `.entitlements` ([`Vigilia.entitlements`](Vigilia.entitlements)).
 2. Ejecuta las pruebas de lógica (`make test`).
 3. Genera los sonidos y el proyecto de Xcode (`make project`, con XcodeGen).
 4. Comprueba la clave de App Store Connect y que haya al menos un dispositivo iOS registrado ([`scripts/asc.py`](scripts/asc.py)).
-5. Hace el *archive* con **firma automática** (`-allowProvisioningUpdates` y la clave de la API): Xcode crea o actualiza el App ID, el App Group y los perfiles.
-6. Exporta la IPA **Ad Hoc** (`method=release-testing`): usa el certificado de distribución gestionado en la nube por Apple y un perfil Ad Hoc con todos los dispositivos registrados. Después comprueba que el perfil y la firma de cada bundle incluyen el App Group ([`scripts/verify-ipa.py`](scripts/verify-ipa.py)).
+5. Hace el *archive* con **firma automática** (`-allowProvisioningUpdates` y la clave de la API): Xcode crea o actualiza el App ID y los perfiles.
+6. Exporta la IPA **Ad Hoc** (`method=release-testing`): usa el certificado de distribución gestionado en la nube por Apple y un perfil Ad Hoc con todos los dispositivos registrados. Después comprueba que cada bundle tiene un perfil Ad Hoc vigente y una firma válida, y avisa si algún iPhone registrado no está en el perfil ([`scripts/verify-ipa.py`](scripts/verify-ipa.py)).
 7. La publica en **GitHub Pages** ([`scripts/publish-pages.sh`](scripts/publish-pages.sh)) y como **Release**, y la sube como artefacto.
 8. Al terminar (aunque algo haya fallado), **revoca el certificado de desarrollo temporal** que `xcodebuild` crea en cada ejecución: solo los certificados «Apple Development» nuevos en el llavero del runner, nunca los que ya tenías.
 
@@ -295,7 +294,6 @@ Necesita Pillow (`pip install pillow`) y Chrome o Chromium para convertir el SVG
 ├── scripts/        # sonidos, ícono, API de App Store Connect, verificación de la IPA y GitHub Pages
 ├── design/icons/   # las cuatro opciones del ícono (SVG) y su vista previa
 ├── Info.plist
-├── Vigilia.entitlements  # App Group (GitHub Actions escribe el definitivo)
 ├── project.yml     # proyecto de Xcode para XcodeGen (lo usa GitHub Actions)
 ├── build.sh        # compilación completa sin proyecto de Xcode
 ├── Makefile

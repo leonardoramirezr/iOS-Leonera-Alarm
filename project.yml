@@ -2,12 +2,10 @@
 # CI archives it with automatic signing (see .github/workflows/build.yml);
 # build.sh is still the way to build locally without an Xcode project.
 #
-# Identifiers: APP_BUNDLE_ID is the app's bundle ID and every extension uses
-# $(APP_BUNDLE_ID).<suffix>, e.g. for a widget target:
+# Identifiers: APP_BUNDLE_ID is the app's bundle ID (CI passes it on the
+# xcodebuild command line) and every extension uses $(APP_BUNDLE_ID).<suffix>,
+# e.g. for a widget target:
 #     PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID).widget
-#     CODE_SIGN_ENTITLEMENTS: Widget/Widget.entitlements
-# CI passes APP_BUNDLE_ID on the xcodebuild command line and, before compiling,
-# writes the App Group (group.<APP_BUNDLE_ID>) literally into every .entitlements file.
 name: Vigilia
 options:
   deploymentTarget:
@@ -38,9 +36,4 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
         INFOPLIST_FILE: Info.plist
         GENERATE_INFOPLIST_FILE: NO
-        CODE_SIGN_ENTITLEMENTS: Vigilia.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-    attributes:
-      SystemCapabilities:
-        com.apple.ApplicationGroups.iOS:
-          enabled: 1

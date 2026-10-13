@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Checks a signed Ad Hoc IPA (macOS: needs `security` and `codesign`).
 
-    verify-ipa.py App.ipa --app-group group.com.example.app [--udids FILE]
+    verify-ipa.py App.ipa [--udids FILE]
 
 For every bundle in the IPA (the app and each .appex):
   - embedded.mobileprovision exists, is not expired and lists devices (Ad Hoc);
-  - the profile's entitlements and the signed entitlements include the App Group.
+  - the code signature is valid.
 With --udids (one UDID per line, from `asc.py check`), warns about registered
 devices missing from a profile.
 """
@@ -19,8 +19,6 @@ import sys
 import tempfile
 import zipfile
 
-GROUPS_KEY = "com.apple.security.application-groups"
-
 
 def run(cmd):
     return subprocess.run(cmd, check=True, capture_output=True).stdout
@@ -29,7 +27,6 @@ def run(cmd):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("ipa")
-    parser.add_argument("--app-group", required=True)
     parser.add_argument("--udids")
     args = parser.parse_args()
 
@@ -78,22 +75,15 @@ def main():
                 print("::warning::%s: %d registered device(s) are not in the profile: %s"
                       % (name, len(missing), ", ".join(missing)))
 
-            profile_groups = profile.get("Entitlements", {}).get(GROUPS_KEY, [])
-            if args.app_group not in profile_groups:
-                errors.append("%s: the profile does not include %s (it has %s)" % (name, args.app_group, profile_groups))
-
-            raw = run(["codesign", "-d", "--entitlements", "-", "--xml", bundle])
-            signed = plistlib.loads(raw) if raw.strip() else {}
-            signed_groups = signed.get(GROUPS_KEY, [])
-            print("  signed App Groups: %s" % ", ".join(signed_groups or ["(none)"]))
-            if args.app_group not in signed_groups:
-                errors.append("%s: the signed entitlements do not include %s" % (name, args.app_group))
+            check = subprocess.run(["codesign", "--verify", "--strict", bundle], capture_output=True, text=True)
+            if check.returncode != 0:
+                errors.append("%s: invalid code signature: %s" % (name, check.stderr.strip()))
 
     if errors:
         for e in errors:
             print("error: " + e, file=sys.stderr)
         sys.exit(1)
-    print("IPA OK: every bundle is signed Ad Hoc with %s." % args.app_group)
+    print("IPA OK: every bundle is signed Ad Hoc.")
 
 
 if __name__ == "__main__":

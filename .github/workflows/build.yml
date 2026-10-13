@@ -73,7 +73,7 @@ jobs:
           fi
 
       # Bundle ID: repository variable APP_BUNDLE_ID, or com.<owner>.<repo> in lowercase.
-      # Extensions use <bundle>.<suffix>; the App Group is group.<bundle>.
+      # Extensions use <bundle>.<suffix>.
       - name: Choose identifiers
         id: ids
         env:
@@ -85,8 +85,7 @@ jobs:
             bundle="$(echo "${bundle}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9.\n-' '-')"
           fi
           echo "bundle_id=${bundle}" >> "$GITHUB_OUTPUT"
-          echo "app_group=group.${bundle}" >> "$GITHUB_OUTPUT"
-          echo "Bundle ID: ${bundle}  App Group: group.${bundle}"
+          echo "Bundle ID: ${bundle}"
 
       - name: Select Xcode
         run: |
@@ -121,20 +120,6 @@ jobs:
         run: |
           brew install xcodegen
           xcodegen --version
-
-      # The App Group goes into the .entitlements as a literal (not a build
-      # setting), so automatic signing registers exactly this group.
-      - name: Write App Group into entitlements
-        env:
-          APP_GROUP: ${{ steps.ids.outputs.app_group }}
-        run: |
-          key=com.apple.security.application-groups
-          find . -name '*.entitlements' -not -path './build/*' -not -path './.git/*' -print0 |
-          while IFS= read -r -d '' file; do
-            /usr/libexec/PlistBuddy -c "Delete :${key}" "${file}" 2>/dev/null || true
-            /usr/libexec/PlistBuddy -c "Add :${key} array" -c "Add :${key}:0 string ${APP_GROUP}" "${file}"
-            echo "${file}:"; cat "${file}"
-          done
 
       - name: Generate Xcode project
         run: make project
@@ -247,11 +232,9 @@ jobs:
             -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
           ls -l build/export
 
-      - name: Verify signature and App Group
+      - name: Verify Ad Hoc signature
         if: steps.signing.outputs.mode == 'signed'
-        env:
-          APP_GROUP: ${{ steps.ids.outputs.app_group }}
-        run: python3 scripts/verify-ipa.py "build/export/${APP_NAME}.ipa" --app-group "${APP_GROUP}" --udids "${RUNNER_TEMP}/udids.txt"
+        run: python3 scripts/verify-ipa.py "build/export/${APP_NAME}.ipa" --udids "${RUNNER_TEMP}/udids.txt"
 
       - name: Package unsigned IPA
         if: steps.signing.outputs.mode == 'unsigned'
