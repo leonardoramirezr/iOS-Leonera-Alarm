@@ -4,9 +4,9 @@
     pages_site.py build  --dir SITE/<tag> --base-url URL --tag TAG ...
         Writes one build folder: manifest.plist, index.html and build.json
         (the IPA and the 57/512 px icons must already be in the folder).
-    pages_site.py index  --dir SITE --keep-branch-builds N
-        Deletes the old branch builds (every main version is kept) and writes
-        the home page that lists all builds.
+    pages_site.py index  --dir SITE --base-url URL --keep-branch-builds N
+        Deletes the old branch builds (every main version is kept), rewrites the
+        URLs of every build for URL and writes the home page that lists them all.
 
 Only folders that contain a build.json are treated as builds.
 """
@@ -94,12 +94,18 @@ La primera vez, activa Ajustes › Privacidad y seguridad › <strong>Modo de de
 </div>"""
 
 
-def cmd_build(args):
-    folder = args.dir
-    base = args.base_url.rstrip("/") + "/" + urllib.parse.quote(args.tag) + "/"
-    ipa_name = os.path.basename(args.ipa)
-    if not os.path.isfile(os.path.join(folder, ipa_name)):
-        sys.exit("error: %s is not in %s" % (ipa_name, folder))
+def write_json(path, data):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
+def render_build(folder, build, base_url):
+    """Writes the URL-dependent files of a build (manifest.plist, index.html and
+    the URLs in build.json) for base_url. Run for every build on each publish,
+    so a change of Pages URL (e.g. a custom domain) reaches the old builds too."""
+    base = base_url.rstrip("/") + "/" + urllib.parse.quote(build["tag"]) + "/"
+    ipa_name = build["ipa"]
     manifest_url = base + "manifest.plist"
     manifest = {"items": [{
         "assets": [
@@ -108,15 +114,40 @@ def cmd_build(args):
             {"kind": "full-size-image", "url": base + "icon-512.png"},
         ],
         "metadata": {
-            "bundle-identifier": args.bundle_id,
-            "bundle-version": args.version,
+            "bundle-identifier": build["bundle_id"],
+            "bundle-version": build["version"],
             "kind": "software",
-            "title": args.title,
+            "title": build["title"],
         },
     }]}
     with open(os.path.join(folder, "manifest.plist"), "wb") as f:
         plistlib.dump(manifest, f)
 
+    build["manifest_url"] = manifest_url
+    build["install_url"] = install_url(manifest_url)
+    write_json(os.path.join(folder, "build.json"), {k: v for k, v in build.items() if k != "folder"})
+
+    kind = ("versión estable" if build.get("stable")
+            else "build de prueba de la rama <code>%s</code>" % html.escape(build.get("branch", "")))
+    body = """<header><img src="icon-512.png" alt=""><div><h1>{title} {tag}</h1>
+<p class="muted">{kind} · versión {version} ({build_number}) · commit <code>{commit}</code></p></div></header>
+<a class="button" href="{install}">Instalar en el iPhone</a>
+{help}
+<p class="muted"><a href="{ipa}">Descargar el IPA</a> · <a href="{release}">Release</a> · <a href="{run}">Ejecución en Actions</a> · <a href="../">Todos los builds</a></p>
+""".format(title=html.escape(build["title"]), tag=html.escape(build["tag"]), kind=kind,
+           version=html.escape(build["version"]), build_number=html.escape(str(build.get("build_number", ""))),
+           commit=html.escape(build.get("commit", "")[:7]), install=html.escape(build["install_url"]), help=HELP,
+           ipa=html.escape(urllib.parse.quote(ipa_name)), release=html.escape(build.get("release_url", "")),
+           run=html.escape(build.get("run_url", "")))
+    with open(os.path.join(folder, "index.html"), "w", encoding="utf-8") as f:
+        f.write(PAGE.format(title=html.escape("%s %s" % (build["title"], build["tag"])), icon="icon-512.png", body=body))
+
+
+def cmd_build(args):
+    folder = args.dir
+    ipa_name = os.path.basename(args.ipa)
+    if not os.path.isfile(os.path.join(folder, ipa_name)):
+        sys.exit("error: %s is not in %s" % (ipa_name, folder))
     build = {
         "tag": args.tag,
         "version": args.version,
@@ -129,28 +160,10 @@ def cmd_build(args):
         "title": args.title,
         "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "ipa": ipa_name,
-        "manifest_url": manifest_url,
-        "install_url": install_url(manifest_url),
         "run_url": args.run_url,
         "release_url": args.release_url,
     }
-    with open(os.path.join(folder, "build.json"), "w", encoding="utf-8") as f:
-        json.dump(build, f, ensure_ascii=False, indent=2)
-        f.write("\n")
-
-    kind = "versión estable" if build["stable"] else "build de prueba de la rama <code>%s</code>" % html.escape(args.branch)
-    body = """<header><img src="icon-512.png" alt=""><div><h1>{title} {tag}</h1>
-<p class="muted">{kind} · versión {version} ({build_number}) · commit <code>{commit}</code></p></div></header>
-<a class="button" href="{install}">Instalar en el iPhone</a>
-{help}
-<p class="muted"><a href="{ipa}">Descargar el IPA</a> · <a href="{release}">Release</a> · <a href="{run}">Ejecución en Actions</a> · <a href="../">Todos los builds</a></p>
-""".format(title=html.escape(args.title), tag=html.escape(args.tag), kind=kind,
-           version=html.escape(args.version), build_number=html.escape(args.build_number),
-           commit=html.escape(args.commit[:7]), install=html.escape(build["install_url"]), help=HELP,
-           ipa=html.escape(urllib.parse.quote(ipa_name)), release=html.escape(args.release_url),
-           run=html.escape(args.run_url))
-    with open(os.path.join(folder, "index.html"), "w", encoding="utf-8") as f:
-        f.write(PAGE.format(title=html.escape("%s %s" % (args.title, args.tag)), icon="icon-512.png", body=body))
+    render_build(folder, build, args.base_url)
 
 
 def cmd_index(args):
@@ -162,6 +175,8 @@ def cmd_index(args):
         print("Removing old branch build " + old["folder"])
         shutil.rmtree(os.path.join(site, old["folder"]))
     branch = branch[:args.keep_branch_builds]
+    for b in stable + branch:
+        render_build(os.path.join(site, b["folder"]), b, args.base_url)
 
     title = (stable or branch or [{}])[0].get("title", "App")
     parts = []
@@ -215,6 +230,7 @@ def main():
     build.set_defaults(func=cmd_build)
     index = sub.add_parser("index")
     index.add_argument("--dir", required=True)
+    index.add_argument("--base-url", required=True)
     index.add_argument("--keep-branch-builds", type=int, default=50)
     index.set_defaults(func=cmd_index)
     args = parser.parse_args()

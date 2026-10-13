@@ -35,8 +35,10 @@ SCRIPTS="$(cd "$(dirname "$0")" && pwd)"
 GIT_DIR_ABS="$(git rev-parse --absolute-git-dir)"
 
 if [ -z "${PAGES_URL:-}" ]; then
-    PAGES_URL="$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .html_url 2>/dev/null || true)"
-    if [ -z "${PAGES_URL}" ]; then
+    # On error (e.g. 404 while Pages is not enabled) gh prints the error body
+    # on stdout, so only use the output when the call succeeds.
+    if ! PAGES_URL="$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .html_url 2>/dev/null)" ||
+        [[ "${PAGES_URL}" != https://* ]]; then
         owner="${GITHUB_REPOSITORY%%/*}"
         PAGES_URL="https://$(echo "${owner}" | tr '[:upper:]' '[:lower:]').github.io/${GITHUB_REPOSITORY#*/}/"
         echo "GitHub Pages API unavailable (Pages not enabled yet?); using ${PAGES_URL}"
@@ -84,7 +86,8 @@ for attempt in 1 2 3 4 5 6; do
 
     rm -rf "${site:?}/${TAG}"
     cp -R "${build_dir}" "${site}/${TAG}"
-    python3 "${SCRIPTS}/pages_site.py" index --dir "${site}" --keep-branch-builds "${KEEP_BRANCH_BUILDS}"
+    python3 "${SCRIPTS}/pages_site.py" index --dir "${site}" --base-url "${PAGES_URL}" \
+        --keep-branch-builds "${KEEP_BRANCH_BUILDS}"
 
     # Single orphan commit. --force: a .gitignore with *.ipa must not drop the IPA.
     export GIT_INDEX_FILE="${work}/index"
