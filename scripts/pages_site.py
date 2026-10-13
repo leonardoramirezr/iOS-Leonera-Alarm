@@ -76,6 +76,8 @@ li:first-child {{ border-top: 0; }}
 li a {{ color: var(--accent); text-decoration: none; font-weight: 600; }}
 .tag {{ font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }}
 code {{ font-size: 13px; }}
+.warn {{ border: 2px solid #ff9f0a; font-weight: 600; }}
+[hidden] {{ display: none !important; }}
 a {{ color: var(--accent); }}
 </style>
 </head>
@@ -87,11 +89,35 @@ a {{ color: var(--accent); }}
 </html>
 """
 
-HELP = """<div class="card">
+HELP = """<p class="card warn" id="warn" hidden></p>
+<div class="card" id="after" hidden>
+<p><strong>¿Tocaste «Instalar» en la ventana de Safari?</strong></p>
+<p class="muted">La app se descarga directo a la pantalla de inicio (o solo a la Biblioteca de apps, según tus ajustes), sin barra de progreso en Safari: desliza hacia abajo en la pantalla de inicio y busca «Vigilia».
+Si no apareció ninguna ventana, recarga esta página y vuelve a tocar el botón.</p>
+</div>
+<div class="card">
 <p><strong>Cómo instalar</strong></p>
-<p class="muted">Abre esta página en <strong>Safari</strong> en un iPhone registrado en la cuenta de desarrollador y toca el botón.
-La primera vez, activa Ajustes › Privacidad y seguridad › <strong>Modo de desarrollador</strong> y reinicia.</p>
-</div>"""
+<p class="muted">Abre esta página en <strong>Safari</strong> (no en Chrome ni dentro de otra app) en un iPhone registrado en la cuenta de desarrollador, toca el botón y luego <strong>Instalar</strong> en la ventana que aparece.
+Para abrir la app hace falta Ajustes › Privacidad y seguridad › <strong>Modo de desarrollador</strong> activado (pide reiniciar).</p>
+</div>
+<script>
+(function () {
+  var ua = navigator.userAgent;
+  var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var safari = /Safari[/]/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA[/]/.test(ua);
+  var warn = document.getElementById("warn");
+  if (!ios) {
+    warn.textContent = "Abre esta página en el iPhone: las apps solo se instalan desde Safari en el iPhone.";
+    warn.hidden = false;
+  } else if (!safari) {
+    warn.textContent = "Estás en otro navegador o en el navegador de una app, que no pueden instalar apps. Abre esta página en Safari.";
+    warn.hidden = false;
+  }
+  document.querySelectorAll('a[href^="itms-services:"]').forEach(function (a) {
+    a.addEventListener("click", function () { document.getElementById("after").hidden = false; });
+  });
+})();
+</script>"""
 
 
 def write_json(path, data):
