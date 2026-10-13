@@ -2,22 +2,26 @@ name: Build iOS app
 
 on:
   push:
-    branches: ["**"]
+    branches: ['**', '!gh-pages']
   workflow_dispatch:
 
-# Builds of the same branch run one after another (none is cancelled), so every
-# push to main gets its own version number.
+# No build is ever cancelled. Builds of main run one after another (so each one
+# gets its own 0.x.0); every other build runs on its own.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.ref == 'refs/heads/main' && 'main' || github.run_id }}
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: write # releases and the gh-pages branch
+  pages: read # gh api repos/{repo}/pages
+
+env:
+  APP_NAME: Vigilia
 
 jobs:
   build:
-    runs-on: macos-26
-    timeout-minutes: 30
+    runs-on: macos-15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
 
@@ -44,51 +48,267 @@ jobs:
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "Tag: ${tag}"
 
-      - name: Show toolchain
+      # All four secrets -> signed Ad Hoc IPA. None -> unsigned IPA. Some -> error.
+      - name: Check signing secrets
+        id: signing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          present=(); missing=()
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 APPLE_TEAM_ID; do
+            if [ -n "${!name}" ]; then present+=("${name}"); else missing+=("${name}"); fi
+          done
+          if [ "${#missing[@]}" -eq 0 ]; then
+            echo "mode=signed" >> "$GITHUB_OUTPUT"
+            echo "All signing secrets are set: building a signed Ad Hoc IPA."
+          elif [ "${#present[@]}" -eq 0 ]; then
+            echo "mode=unsigned" >> "$GITHUB_OUTPUT"
+            echo "::notice::No signing secrets: building an unsigned IPA (it is not published to GitHub Pages)."
+          else
+            echo "::error::Only some signing secrets are set. Missing: ${missing[*]} (set: ${present[*]}). Set all four or none."
+            exit 1
+          fi
+
+      # Bundle ID: repository variable APP_BUNDLE_ID, or com.<owner>.<repo> in lowercase.
+      # Extensions use <bundle>.<suffix>.
+      - name: Choose identifiers
+        id: ids
+        env:
+          APP_BUNDLE_ID_VAR: ${{ vars.APP_BUNDLE_ID }}
+        run: |
+          bundle="${APP_BUNDLE_ID_VAR}"
+          if [ -z "${bundle}" ]; then
+            bundle="com.${GITHUB_REPOSITORY_OWNER}.${GITHUB_REPOSITORY#*/}"
+            bundle="$(echo "${bundle}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9.\n-' '-')"
+          fi
+          echo "bundle_id=${bundle}" >> "$GITHUB_OUTPUT"
+          echo "Bundle ID: ${bundle}"
+
+      - name: Select Xcode
+        run: |
+          xcode="$(python3 - <<'EOF'
+          import glob, re
+          found = []
+          for path in glob.glob("/Applications/Xcode_*.app"):
+              m = re.fullmatch(r"/Applications/Xcode_(\d+(?:\.\d+)*)(.*)\.app", path)
+              if m and int(m.group(1).split(".")[0]) >= 26:
+                  found.append((m.group(2) == "", tuple(map(int, m.group(1).split("."))), path))
+          print(max(found)[2] if found else "")
+          EOF
+          )"
+          if [ -n "${xcode}" ]; then
+            sudo xcode-select -s "${xcode}"
+          fi
+          if [ "$(xcodebuild -version | awk '/^Xcode/ {split($2, v, "."); print v[1]}')" -lt 26 ]; then
+            echo "::error::The app needs Xcode 26 or later (iOS 26 SDK, AlarmKit); none found on this runner."
+            ls -d /Applications/Xcode*.app
+            exit 1
+          fi
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
-          xcrun swiftc --version
 
       - name: Logic tests
         run: make test
 
-      - name: Build unsigned IPA
+      - name: Install XcodeGen
         env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        run: |
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate Xcode project
+        run: make project
+
+      - name: Write App Store Connect key
+        if: steps.signing.outputs.mode == 'signed'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          key="${RUNNER_TEMP}/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s\n' "${ASC_KEY_P8}" > "${key}"
+          chmod 600 "${key}"
+          echo "ASC_KEY_PATH=${key}" >> "$GITHUB_ENV"
+
+      - name: Validate App Store Connect key and devices
+        if: steps.signing.outputs.mode == 'signed'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: python3 scripts/asc.py check --udids-out "${RUNNER_TEMP}/udids.txt"
+
+      # xcodebuild creates a new "Apple Development" certificate on every run
+      # (its private key only lives on this runner); remember the ones already
+      # here so only the new one is revoked at the end.
+      - name: Save Apple Development certificates in the keychain
+        if: steps.signing.outputs.mode == 'signed'
+        run: |
+          python3 scripts/asc.py dev-serials > "${RUNNER_TEMP}/dev-serials-before.txt"
+          echo "Apple Development certificates before the build: $(wc -l < "${RUNNER_TEMP}/dev-serials-before.txt")"
+
+      - name: Archive
+        env:
+          SIGNING: ${{ steps.signing.outputs.mode }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUNDLE_ID: ${{ steps.ids.outputs.bundle_id }}
           VERSION: ${{ steps.tag.outputs.version }}
           BUILD_NUMBER: ${{ github.run_number }}
-        run: make build
+        run: |
+          args=(
+            archive
+            -project "${APP_NAME}.xcodeproj" -scheme "${APP_NAME}" -configuration Release
+            -destination 'generic/platform=iOS'
+            -archivePath "build/${APP_NAME}.xcarchive"
+            APP_BUNDLE_ID="${BUNDLE_ID}"
+            MARKETING_VERSION="${VERSION}"
+            CURRENT_PROJECT_VERSION="${BUILD_NUMBER}"
+          )
+          if [ "${SIGNING}" = "signed" ]; then
+            args+=(
+              -allowProvisioningUpdates
+              -authenticationKeyPath "${ASC_KEY_PATH}"
+              -authenticationKeyID "${ASC_KEY_ID}"
+              -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
+              DEVELOPMENT_TEAM="${APPLE_TEAM_ID}"
+              CODE_SIGN_STYLE=Automatic
+            )
+          else
+            args+=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM=)
+          fi
+          xcodebuild "${args[@]}"
+
+          # iOS finds the alarm buttons' App Intents through this metadata.
+          app="build/${APP_NAME}.xcarchive/Products/Applications/${APP_NAME}.app"
+          for intent in StopAlarmIntent OpenChallengeIntent; do
+            if ! grep -q "${intent}" "${app}/Metadata.appintents/extract.actionsdata" 2>/dev/null; then
+              echo "::error::${intent} is missing from the App Intents metadata"
+              exit 1
+            fi
+          done
+
+      # Ad Hoc ("release-testing"): cloud-managed distribution certificate and an
+      # Ad Hoc profile with every registered device, both handled by xcodebuild.
+      - name: Export Ad Hoc IPA
+        if: steps.signing.outputs.mode == 'signed'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          plist="${RUNNER_TEMP}/ExportOptions.plist"
+          cat > "${plist}" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>release-testing</string>
+              <key>signingStyle</key>
+              <string>automatic</string>
+              <key>teamID</key>
+              <string>${APPLE_TEAM_ID}</string>
+              <key>destination</key>
+              <string>export</string>
+              <key>thinning</key>
+              <string>&lt;none&gt;</string>
+          </dict>
+          </plist>
+          EOF
+          plutil -lint "${plist}"
+          xcodebuild -exportArchive \
+            -archivePath "build/${APP_NAME}.xcarchive" \
+            -exportPath build/export \
+            -exportOptionsPlist "${plist}" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${ASC_KEY_PATH}" \
+            -authenticationKeyID "${ASC_KEY_ID}" \
+            -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
+          ls -l build/export
+
+      - name: Verify Ad Hoc signature
+        if: steps.signing.outputs.mode == 'signed'
+        run: python3 scripts/verify-ipa.py "build/export/${APP_NAME}.ipa" --udids "${RUNNER_TEMP}/udids.txt"
+
+      - name: Package unsigned IPA
+        if: steps.signing.outputs.mode == 'unsigned'
+        run: |
+          rm -rf build/export build/payload
+          mkdir -p build/export build/payload/Payload
+          cp -R "build/${APP_NAME}.xcarchive/Products/Applications/${APP_NAME}.app" build/payload/Payload/
+          (cd build/payload && zip -qry "../export/${APP_NAME}.ipa" Payload)
+          ls -l build/export
 
       - name: Upload IPA
         uses: actions/upload-artifact@v6
         with:
-          name: Vigilia-ipa
-          path: build/Vigilia.ipa
+          name: ${{ env.APP_NAME }}-ipa
+          path: build/export/${{ env.APP_NAME }}.ipa
           if-no-files-found: error
+
+      - name: Publish to GitHub Pages
+        id: pages
+        if: steps.signing.outputs.mode == 'signed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          VERSION: ${{ steps.tag.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          STABLE: ${{ steps.tag.outputs.stable }}
+          BUNDLE_ID: ${{ steps.ids.outputs.bundle_id }}
+          ICON: Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+          APP_TITLE: ${{ env.APP_NAME }}
+          KEEP_BRANCH_BUILDS: "50"
+        run: bash scripts/publish-pages.sh "build/export/${APP_NAME}.ipa"
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
           STABLE: ${{ steps.tag.outputs.stable }}
+          SIGNING: ${{ steps.signing.outputs.mode }}
+          PAGE_URL: ${{ steps.pages.outputs.build_url }}
         run: |
           branch="${GITHUB_REF_NAME}"
+          ipa="build/export/${APP_NAME}.ipa"
+          if [ "${SIGNING}" = "signed" ]; then
+            notes="IPA firmada Ad Hoc (solo para los iPhone registrados en la cuenta de desarrollador). Instálala desde Safari en el iPhone: ${PAGE_URL}"
+          else
+            notes="IPA sin firmar: fírmala al instalarla con Sideloadly, AltStore o SideStore."
+          fi
           if gh release view "${TAG}" >/dev/null 2>&1; then
             # Re-run of a build that was already published: just refresh the IPA.
-            gh release upload "${TAG}" build/Vigilia.ipa --clobber
+            gh release upload "${TAG}" "${ipa}" --clobber
           elif [ "${STABLE}" = "true" ]; then
-            gh release create "${TAG}" build/Vigilia.ipa \
+            gh release create "${TAG}" "${ipa}" \
               --target "${GITHUB_SHA}" \
               --latest \
-              --title "Vigilia ${TAG}" \
+              --title "${APP_NAME} ${TAG}" \
+              --notes "${notes}" \
               --generate-notes
-            # The old pre-release "latest" (before versioned releases) would only go stale.
-            gh release delete latest --yes --cleanup-tag 2>/dev/null || true
           else
-            gh release create "${TAG}" build/Vigilia.ipa \
+            gh release create "${TAG}" "${ipa}" \
               --target "${GITHUB_SHA}" \
               --prerelease \
               --latest=false \
-              --title "Vigilia ${TAG} (${branch})" \
-              --notes "IPA sin firmar compilada desde la rama \`${branch}\`, commit ${GITHUB_SHA::7}. Es una build de prueba, no la versión estable."
+              --title "${APP_NAME} ${TAG} (${branch})" \
+              --notes "Build de prueba compilada desde la rama \`${branch}\`, commit ${GITHUB_SHA::7}; no es la versión estable. ${notes}"
           fi
+
+      # Runs even if the build failed: revoke only the certificates created by this run.
+      - name: Revoke temporary development certificate
+        if: always() && steps.signing.outputs.mode == 'signed'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: python3 scripts/asc.py revoke-new-dev-certs --before "${RUNNER_TEMP}/dev-serials-before.txt"
+
+      - name: Remove App Store Connect key
+        if: always()
+        run: rm -f "${RUNNER_TEMP}"/AuthKey_*.p8

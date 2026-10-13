@@ -1,0 +1,40 @@
+# XcodeGen spec: `make project` generates Vigilia.xcodeproj (not committed).
+# CI archives it with automatic signing (see .github/workflows/build.yml);
+# build.sh is still the way to build locally without an Xcode project.
+#
+# Identifiers: APP_BUNDLE_ID is the app's bundle ID (CI passes it on the
+# xcodebuild command line) and every extension uses $(APP_BUNDLE_ID).<suffix>,
+# e.g. for a widget target:
+#     PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID).widget
+name: Vigilia
+options:
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    APP_BUNDLE_ID: com.leonardoramirezr.vigilia-ios
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Automatic
+targets:
+  Vigilia:
+    type: application
+    platform: iOS
+    scheme: {}
+    sources:
+      - path: src
+      - path: Resources/Assets.xcassets
+      # Sounds (CAF) and Sounds.json from scripts/prepare_resources.sh, copied to the bundle root.
+      - path: build/resources
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_NAME: Vigilia
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
+        INFOPLIST_FILE: Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # iPhone only (set on the target: XcodeGen's iOS preset would make it "1,2").
+        TARGETED_DEVICE_FAMILY: "1"

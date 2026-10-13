@@ -9,7 +9,7 @@ Alarma para iPhone (iOS 26 o posterior) hecha con **AlarmKit**, el framework de 
 - 🌙 **¿Ya despertaste antes?** Desde 3 horas antes de que suene puedes desactivar esa alarma haciendo el mismo reto desde la app. Solo se salta esa vez.
 - 📈 **Estadísticas de tus despertares:** a qué hora sonó la alarma, a qué hora la apagaste y cuánto tardaste, con promedio, percentiles y gráficas de cómo han cambiado, por día de la semana o de toda la semana, contando siempre, el último año, mes o semana.
 
-Se compila **sin proyecto de Xcode** (solo `swiftc`, un `Makefile` y `build.sh`, igual que la plantilla original) de dos formas: en **GitHub Actions** (sin Mac) o con un **script local**.
+Se compila de dos formas: en **GitHub Actions** (sin Mac), que firma la app Ad Hoc y la publica en una página desde la que se instala con Safari en el iPhone, o con un **script local** sin proyecto de Xcode (solo `swiftc`, un `Makefile` y `build.sh`). El proyecto de Xcode que usa GitHub Actions no está en el repositorio: se genera con [XcodeGen](https://github.com/yonaskolb/XcodeGen) a partir de [`project.yml`](project.yml).
 
 ---
 
@@ -22,6 +22,7 @@ Se compila **sin proyecto de Xcode** (solo `swiftc`, un `Makefile` y `build.sh`,
 | Sin posponer, ni cerrando la app | ✅ Sí, con un matiz | iOS **siempre** muestra un control para detener la alarma y los botones físicos también la detienen; ninguna app puede quitar eso. Vigilia lo resuelve haciendo que la alarma **vuelva a sonar** (cada minuto y luego más espaciado, durante una hora) hasta que completes el reto. Esas repeticiones ya están programadas en iOS, así que cerrar o matar la app no las detiene. |
 | Apagarla con un ejercicio mental de 1 minuto | ✅ Sí | 1 minuto de cálculo mental (o hasta 10, si lo eliges); el reloj se pausa si dejas de responder y cada error resta 5 s. |
 | Compilar sin Xcode | ⚠️ Parcial | **GitHub Actions: sí, sin Mac y sin Xcode de tu lado.** **Local:** necesitas una Mac con Xcode *instalado* (nunca lo abres y no hay `.xcodeproj`). Sin Xcode instalado no es posible: el SDK de iOS solo viene dentro de Xcode. |
+| Instalarla desde el iPhone | ✅ Sí, con la cuenta de desarrollador | Cada push firma la app **Ad Hoc** y la publica en GitHub Pages: se instala desde Safari en los iPhone registrados en tu cuenta de Apple Developer. Ver [Instalar desde Safari](#instalar-desde-safari-ad-hoc). |
 | Instalarla sin la suscripción de desarrollador | ⚠️ Sí, con límites | Con tu Apple ID **gratuito** y Sideloadly, AltStore o SideStore. La firma dura **7 días** (hay que renovarla), máximo 3 apps instaladas así y necesitas una computadora (Windows o Mac) al menos la primera vez. |
 
 ---
@@ -112,7 +113,7 @@ Programa una alarma de prueba en 1 minuto que se comporta igual que la real (rep
 - **Desinstalar la app o quitarle el permiso de Alarmas** (Ajustes › Vigilia) sí la apaga. Ninguna app puede impedirlo.
 - Los sonidos personalizados de AlarmKit deben durar **menos de 30 s** y, según reportes de otros desarrolladores, pueden sonar una sola vez en lugar de repetirse. Por eso cada sonido dura 28 s y la alarma vuelve a sonar cada minuto.
 - Apple indica que las apps **ocultas o bloqueadas con Face ID** no pueden usar AlarmKit: no ocultes ni bloquees Vigilia.
-- Si la **firma gratuita de 7 días vence**, la app no abre: las alarmas siguen sonando, pero no podrías hacer el reto. La app te muestra cuándo vence la firma y te avisa 2 días antes.
+- Si la **firma vence** (7 días con un Apple ID gratuito; hasta un año con la firma Ad Hoc de GitHub Actions), la app no abre: las alarmas siguen sonando, pero no podrías hacer el reto. La app te muestra cuándo vence la firma y te avisa 2 días antes.
 - Las repeticiones duran una hora (dos si sigues deteniéndola) para que, si dejas el teléfono en casa, no suene todo el día.
 
 ---
@@ -121,19 +122,52 @@ Programa una alarma de prueba en 1 minuto que se comporta igual que la real (rep
 
 ### Opción 1: GitHub Actions (no necesitas Mac)
 
-El workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) corre en un Mac de GitHub (`macos-26`, que ya trae Xcode) en cada push:
+El workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) corre en un Mac de GitHub (`macos-15`, con el Xcode 26 más reciente que tenga instalado) en cada push a cualquier rama salvo `gh-pages`, y también se puede lanzar a mano (*Run workflow*). Ningún build cancela a otro: los de `main` se ejecutan uno tras otro (para que cada uno reciba su número de versión) y los de las demás ramas en paralelo.
 
-1. Ejecuta las pruebas de lógica (`make test`).
-2. Compila y empaqueta la app (`make build`).
-3. Sube `Vigilia.ipa` (sin firmar) como artefacto.
-4. La publica como Release con su tag (ver abajo).
+1. Elige la etiqueta (ver abajo) y los identificadores:
+   - **Bundle ID:** `com.<dueño>.<repositorio>` en minúsculas (aquí `com.leonardoramirezr.vigilia-ios`) o, si existe, la variable de repositorio **`APP_BUNDLE_ID`** (*Settings › Secrets and variables › Actions › Variables*).
+   - **Extensiones** (si algún día se agregan): `<bundle>.<sufijo>`, por ejemplo `com.leonardoramirezr.vigilia-ios.widget`.
+2. Ejecuta las pruebas de lógica (`make test`).
+3. Genera los sonidos y el proyecto de Xcode (`make project`, con XcodeGen).
+4. Comprueba la clave de App Store Connect y que haya al menos un dispositivo iOS registrado ([`scripts/asc.py`](scripts/asc.py)).
+5. Hace el *archive* con **firma automática** (`-allowProvisioningUpdates` y la clave de la API): Xcode crea o actualiza el App ID y los perfiles.
+6. Exporta la IPA **Ad Hoc** (`method=release-testing`): usa el certificado de distribución gestionado en la nube por Apple y un perfil Ad Hoc con todos los dispositivos registrados. Después comprueba que cada bundle tiene un perfil Ad Hoc vigente y una firma válida, y avisa si algún iPhone registrado no está en el perfil ([`scripts/verify-ipa.py`](scripts/verify-ipa.py)).
+7. La publica en **GitHub Pages** ([`scripts/publish-pages.sh`](scripts/publish-pages.sh)) y como **Release**, y la sube como artefacto.
+8. Al terminar (aunque algo haya fallado), **revoca el certificado de desarrollo temporal** que `xcodebuild` crea en cada ejecución: solo los certificados «Apple Development» nuevos en el llavero del runner, nunca los que ya tenías.
 
-Para descargar la IPA:
-- **Desde Releases (más fácil):** cada commit publica un Release con la IPA, etiquetado según su rama:
-  - **`main` → `0.x.0`** (`0.1.0`, `0.2.0`, `0.3.0`…): empieza en `0.1.0` y cada push a `main` sube el número del medio en 1. Es la versión estable, marcada como *Latest*. Enlace directo a la más reciente, que también puedes abrir desde el iPhone:
-    `https://github.com/leonardoramirezr/vigilia-ios/releases/latest/download/Vigilia.ipa`
-  - **Cualquier otra rama → `build-<N>-<commit>`** (por ejemplo `build-2-c1e51fa`): `<N>` es el número de ejecución del workflow (sube con cada build de cualquier rama) y `<commit>` los 7 primeros caracteres del hash, para saber exactamente qué código se compiló. Se publica como pre-release, nunca como *Latest*.
-- **Desde Actions:** pestaña *Actions* › la ejecución › *Artifacts* › `Vigilia-ipa` (viene dentro de un .zip).
+Etiquetas:
+- **`main` → `0.x.0`** (`0.1.0`, `0.2.0`, `0.3.0`…): cada push a `main` sube el número del medio en 1. Es la versión estable, marcada como *Latest*.
+- **Cualquier otra rama → `build-<N>-<commit>`** (por ejemplo `build-2-c1e51fa`): `<N>` es el número de ejecución del workflow y `<commit>` los 7 primeros caracteres del hash. Se publica como pre-release, nunca como *Latest*.
+
+#### Secrets (firma)
+
+En *Settings › Secrets and variables › Actions › Secrets* **del repositorio** (no de una organización: este repositorio es personal):
+
+| Secret | Contenido |
+|---|---|
+| `ASC_KEY_ID` | Key ID de la clave de la API de App Store Connect |
+| `ASC_ISSUER_ID` | Issuer ID |
+| `ASC_KEY_P8` | Contenido completo del archivo `AuthKey_XXXX.p8` |
+| `APPLE_TEAM_ID` | Team ID de la cuenta de Apple Developer |
+
+La clave debe ser una **Team Key con rol Admin** (App Store Connect › Usuarios y acceso › Integraciones): la necesita el certificado de distribución gestionado en la nube. Los UDID de los iPhone se registran en [Apple Developer › Devices](https://developer.apple.com/account/resources/devices/list); después de registrar uno nuevo, el siguiente build ya lo incluye.
+
+- **Con los cuatro secrets:** IPA firmada Ad Hoc, publicada en GitHub Pages y en Releases.
+- **Sin ninguno:** IPA **sin firmar** (como antes, para Sideloadly, AltStore o SideStore), solo en Releases y en Artifacts.
+- **Con solo algunos:** el build falla e indica cuáles faltan.
+
+#### Configuración manual, una sola vez: GitHub Pages
+
+*Settings › Pages › Build and deployment*: **Source: Deploy from a branch**, rama **`gh-pages`**, carpeta **`/ (root)`** › *Save*. La rama `gh-pages` la crea el primer build firmado; si todavía no aparece en la lista, espera a que termine y vuelve a esta pantalla.
+
+#### Página de instalación
+
+`https://leonardoramirezr.github.io/vigilia-ios/` (o el dominio configurado en Pages):
+- La portada lista todos los builds y tiene un botón para instalar la **última versión estable**.
+- Cada build tiene su carpeta (`/0.3.0/`, `/build-41-c1e51fa/`) con la IPA, `manifest.plist`, `build.json` y su propia página con el botón de instalar (`itms-services://`).
+- `gh-pages` se reescribe en cada publicación como **un único commit** (las IPA viejas no se acumulan en el historial). Se guardan **todas las versiones de `main`** y los **últimos 50 builds** de otras ramas. Cada IPA pesa unos 17 MB y GitHub Pages admite sitios de hasta 1 GB, así que con muchas versiones de `main` conviene bajar `KEEP_BRANCH_BUILDS` en el workflow.
+
+Otras formas de descargar la IPA: el Release de cada build (la estable más reciente está en `https://github.com/leonardoramirezr/vigilia-ios/releases/latest/download/Vigilia.ipa`) o *Actions* › la ejecución › *Artifacts* › `Vigilia-ipa`.
 
 El repositorio es público, así que los minutos de Mac en GitHub Actions no cuestan nada.
 
@@ -158,11 +192,24 @@ make clean
 
 Variables opcionales: `BUNDLE_ID=com.tunombre.vigilia make build`, `VERSION=1.1`, `BUILD_NUMBER=2`.
 
+Para abrirlo o compilarlo con Xcode: `brew install xcodegen` y `make project`, que genera `Vigilia.xcodeproj` (no se guarda en el repositorio).
+
 ### ¿Y sin Xcode instalado?
 
 No se puede, y no es por la plantilla: el SDK de iOS (SwiftUI para iPhone, AlarmKit, etc.), `actool` y el procesador de App Intents **solo se distribuyen dentro de Xcode.app**. Las *Command Line Tools* traen únicamente el SDK de macOS, que es por lo que la plantilla original funcionaba sin Xcode y una app de iPhone no. La salida es justamente la Opción 1: los Mac de GitHub ya tienen Xcode, tú solo haces push.
 
 ---
+
+## Instalar desde Safari (Ad Hoc)
+
+Para los iPhone registrados en la cuenta de Apple Developer (ver [Secrets](#secrets-firma)):
+
+1. En el iPhone, abre en **Safari** `https://leonardoramirezr.github.io/vigilia-ios/`.
+2. Toca **Instalar la última versión estable** (o el build que quieras) y confirma. La app aparece en la pantalla de inicio.
+3. La primera vez: Ajustes › Privacidad y seguridad › **Modo de desarrollador** › activar y reiniciar (iOS lo exige para las apps Ad Hoc). No hay que «confiar» en ningún perfil.
+4. Sigue con [Primer arranque en el iPhone](#primer-arranque-en-el-iphone) desde el paso 3.
+
+Para actualizar, instala el build nuevo encima: se conservan las alarmas y las estadísticas. Si Safari dice que no se puede instalar, casi siempre es que el iPhone no estaba registrado cuando se compiló ese build: regístralo y vuelve a lanzar el workflow.
 
 ## Instalarla en tu iPhone sin pagar la suscripción
 
@@ -211,7 +258,8 @@ Con un **Apple ID gratuito** puedes firmar apps para tus propios dispositivos. L
 | Qué | Dónde |
 |---|---|
 | Días y hora (la misma o una por día) | En la app |
-| Bundle ID, versión | `BUNDLE_ID=… VERSION=… make build` |
+| Bundle ID (GitHub Actions) | Variable de repositorio `APP_BUNDLE_ID`; si no existe, `com.<dueño>.<repositorio>` |
+| Bundle ID, versión (local) | `BUNDLE_ID=… VERSION=… make build` |
 | Repeticiones, duración de la sesión, desbloqueo, cuánto antes se puede desactivar | `AlarmRules` en [`src/Core/AlarmMath.swift`](src/Core/AlarmMath.swift) |
 | Penalizaciones, tiempo por respuesta, duraciones posibles del reto | `ChallengeRules` y `ChallengeDuration` en [`src/Core/MathChallenge.swift`](src/Core/MathChallenge.swift) |
 | Tipos de operaciones de cada dificultad | `ProblemFactory` en [`src/Core/MathChallenge.swift`](src/Core/MathChallenge.swift) |
@@ -243,9 +291,10 @@ Necesita Pillow (`pip install pillow`) y Chrome o Chromium para convertir el SVG
 │   └── Views/      # SwiftUI
 ├── tests/          # pruebas de la lógica (make test)
 ├── Resources/      # catálogo de assets con el ícono
-├── scripts/        # generador de sonidos y del ícono
+├── scripts/        # sonidos, ícono, API de App Store Connect, verificación de la IPA y GitHub Pages
 ├── design/icons/   # las cuatro opciones del ícono (SVG) y su vista previa
 ├── Info.plist
+├── project.yml     # proyecto de Xcode para XcodeGen (lo usa GitHub Actions)
 ├── build.sh        # compilación completa sin proyecto de Xcode
 ├── Makefile
 └── .github/workflows/build.yml
