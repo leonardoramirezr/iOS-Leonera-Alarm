@@ -6,11 +6,13 @@
 #   build/Vigilia.app   the app bundle
 #   build/Vigilia.ipa   unsigned IPA, ready for Sideloadly / AltStore / SideStore
 #
-# Environment overrides: BUNDLE_ID, VERSION, BUILD_NUMBER.
+# Environment overrides: VERSION, BUILD_NUMBER.
+# The bundle identifier is fixed on purpose (alarms, permissions and data are
+# tied to it); it is not overridable.
 set -euo pipefail
 
 APP_NAME="Vigilia"
-BUNDLE_ID="${BUNDLE_ID:-com.leonardoramirezr.vigilia}"
+readonly BUNDLE_ID="com.leonardoramirezr.leoneraalarm"
 VERSION="${VERSION:-1.0}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
 MIN_IOS="26.0"

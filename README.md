@@ -156,7 +156,9 @@ make clean
 4. Genera los sonidos (`scripts/generate_sounds.py`, solo la primera vez) y los convierte a CAF con `afconvert`.
 5. Empaqueta `Payload/Vigilia.app` en `build/Vigilia.ipa`.
 
-Variables opcionales: `BUNDLE_ID=com.tunombre.vigilia make build`, `VERSION=1.1`, `BUILD_NUMBER=2`.
+Variables opcionales: `VERSION=1.1`, `BUILD_NUMBER=2`.
+
+El Bundle ID es fijo: `com.leonardoramirezr.leoneraalarm` (en `Info.plist` y `build.sh`). No se puede cambiar con variables de entorno, para que iOS siempre reconozca la app como la misma (alarmas, permisos y datos).
 
 ### ¿Y sin Xcode instalado?
 
@@ -211,7 +213,7 @@ Con un **Apple ID gratuito** puedes firmar apps para tus propios dispositivos. L
 | Qué | Dónde |
 |---|---|
 | Días y hora (la misma o una por día) | En la app |
-| Bundle ID, versión | `BUNDLE_ID=… VERSION=… make build` |
+| Versión | `VERSION=… BUILD_NUMBER=… make build` |
 | Repeticiones, duración de la sesión, desbloqueo, cuánto antes se puede desactivar | `AlarmRules` en [`src/Core/AlarmMath.swift`](src/Core/AlarmMath.swift) |
 | Penalizaciones, tiempo por respuesta, duraciones posibles del reto | `ChallengeRules` y `ChallengeDuration` en [`src/Core/MathChallenge.swift`](src/Core/MathChallenge.swift) |
 | Tipos de operaciones de cada dificultad | `ProblemFactory` en [`src/Core/MathChallenge.swift`](src/Core/MathChallenge.swift) |
