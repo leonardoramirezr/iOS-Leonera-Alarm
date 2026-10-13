@@ -10,13 +10,12 @@
 set -euo pipefail
 
 APP_NAME="Vigilia"
-BUNDLE_ID="${BUNDLE_ID:-com.leonardoramirezr.vigilia}"
+BUNDLE_ID="${BUNDLE_ID:-com.leonardoramirezr.vigilia-ios}"
 VERSION="${VERSION:-1.0}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
 MIN_IOS="26.0"
 BUILD_DIR="build"
 OBJ_DIR="${BUILD_DIR}/obj"
-SOUND_DIR="${BUILD_DIR}/sounds"
 APP_BUNDLE="${BUILD_DIR}/${APP_NAME}.app"
 IPA="${BUILD_DIR}/${APP_NAME}.ipa"
 TARGET="arm64-apple-ios${MIN_IOS}"
@@ -128,18 +127,8 @@ else
     echo "warning: actool failed; building without an app icon" >&2
 fi
 
-# Sounds are synthesized from scratch (license-free) and cached between builds.
-if [ ! -f "${SOUND_DIR}/.stamp" ] || [ scripts/generate_sounds.py -nt "${SOUND_DIR}/.stamp" ]; then
-    echo "Generating sounds..."
-    rm -rf "${SOUND_DIR}"
-    python3 scripts/generate_sounds.py --out "${SOUND_DIR}"
-    touch "${SOUND_DIR}/.stamp"
-fi
-echo "Converting sounds..."
-for wav in "${SOUND_DIR}"/*.wav; do
-    afconvert -f caff -d ima4 "${wav}" "${APP_BUNDLE}/$(basename "${wav}" .wav).caf"
-done
-cp "${SOUND_DIR}/Sounds.json" "${APP_BUNDLE}/Sounds.json"
+bash scripts/prepare_resources.sh
+cp build/resources/* "${APP_BUNDLE}/"
 
 printf 'APPL????' > "${APP_BUNDLE}/PkgInfo"
 plutil -lint "${INFO}" > /dev/null

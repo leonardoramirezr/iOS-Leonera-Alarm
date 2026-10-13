@@ -9,7 +9,7 @@
     <key>CFBundleExecutable</key>
     <string>Vigilia</string>
     <key>CFBundleIdentifier</key>
-    <string>com.leonardoramirezr.vigilia</string>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleLocalizations</key>
@@ -21,13 +21,11 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>$(MARKETING_VERSION)</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
-    <key>MinimumOSVersion</key>
-    <string>26.0</string>
     <key>NSAlarmKitUsageDescription</key>
     <string>Vigilia programa tus alarmas para que suenen aunque el iPhone esté en silencio o en modo Concentración.</string>
     <key>NSSupportsLiveActivities</key>
