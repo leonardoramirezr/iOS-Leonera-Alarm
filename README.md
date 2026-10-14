@@ -125,8 +125,8 @@ Programa una alarma de prueba en 1 minuto que se comporta igual que la real (rep
 El workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) corre en un Mac de GitHub (`macos-15`, con el Xcode 26 más reciente que tenga instalado) en cada push a cualquier rama salvo `gh-pages`, y también se puede lanzar a mano (*Run workflow*). Ningún build cancela a otro: los de `main` se ejecutan uno tras otro (para que cada uno reciba su número de versión) y los de las demás ramas en paralelo.
 
 1. Elige la etiqueta (ver abajo) y los identificadores:
-   - **Bundle ID:** `com.<dueño>.<repositorio>` en minúsculas (aquí `com.leonardoramirezr.vigilia-ios`) o, si existe, la variable de repositorio **`APP_BUNDLE_ID`** (*Settings › Secrets and variables › Actions › Variables*).
-   - **Extensiones** (si algún día se agregan): `<bundle>.<sufijo>`, por ejemplo `com.leonardoramirezr.vigilia-ios.widget`.
+   - **Bundle ID:** siempre `com.leonardoramirezr.leoneraalarm` (fijo en `project.yml`, `build.sh` y el workflow; no depende del repositorio ni de variables).
+   - **Extensiones** (si algún día se agregan): `<bundle>.<sufijo>`, por ejemplo `com.leonardoramirezr.leoneraalarm.widget`.
 2. Ejecuta las pruebas de lógica (`make test`).
 3. Genera los sonidos y el proyecto de Xcode (`make project`, con XcodeGen).
 4. Comprueba la clave de App Store Connect y que haya al menos un dispositivo iOS registrado ([`scripts/asc.py`](scripts/asc.py)).
@@ -258,8 +258,9 @@ Con un **Apple ID gratuito** puedes firmar apps para tus propios dispositivos. L
 | Qué | Dónde |
 |---|---|
 | Días y hora (la misma o una por día) | En la app |
-| Bundle ID (GitHub Actions) | Variable de repositorio `APP_BUNDLE_ID`; si no existe, `com.<dueño>.<repositorio>` |
-| Bundle ID, versión (local) | `BUNDLE_ID=… VERSION=… make build` |
+| Bundle ID | Fijo: `com.leonardoramirezr.leoneraalarm` (no cambiarlo) |
+| Nombre visible | `CFBundleDisplayName` en [`Info.plist`](Info.plist) (`Leonera Alarm`) |
+| Versión (local) | `VERSION=… make build` |
 | Repeticiones, duración de la sesión, desbloqueo, cuánto antes se puede desactivar | `AlarmRules` en [`src/Core/AlarmMath.swift`](src/Core/AlarmMath.swift) |
 | Penalizaciones, tiempo por respuesta, duraciones posibles del reto | `ChallengeRules` y `ChallengeDuration` en [`src/Core/MathChallenge.swift`](src/Core/MathChallenge.swift) |
 | Tipos de operaciones de cada dificultad | `ProblemFactory` en [`src/Core/MathChallenge.swift`](src/Core/MathChallenge.swift) |
