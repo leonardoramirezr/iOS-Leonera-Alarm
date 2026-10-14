@@ -20,6 +20,7 @@ Se compila de dos formas: en **GitHub Actions** (sin Mac), que firma la app Ad H
 | Usar AlarmKit | ✅ Sí | Las alarmas las programa iOS con `AlarmManager`: suenan con el iPhone en silencio, en Concentración, con la app cerrada y después de reiniciar. |
 | Sonido diferente cada día | ✅ Sí | 90 sonidos propios en rotación barajada. Nunca suena el mismo dos días seguidos. |
 | Sin posponer, ni cerrando la app | ✅ Sí, con un matiz | iOS **siempre** muestra un control para detener la alarma y los botones físicos también la detienen; ninguna app puede quitar eso. Vigilia lo resuelve haciendo que la alarma **vuelva a sonar** (cada minuto y luego más espaciado, durante una hora) hasta que completes el reto. Esas repeticiones ya están programadas en iOS, así que cerrar o matar la app no las detiene. |
+| Que suene a todo volumen aunque el volumen esté bajo | ⚠️ Parcial | **Durante el reto, sí:** la alarma suena todo el tiempo dentro de la app y sube el volumen del iPhone al máximo (en su bocina). **Con el iPhone bloqueado, no:** AlarmKit suena al volumen de tono y alertas de iOS y ninguna app puede subirlo; hay que dejarlo al máximo y desactivar «Cambiar con botones». Ver [El volumen](#el-volumen). |
 | Apagarla con un ejercicio mental de 1 minuto | ✅ Sí | 1 minuto de cálculo mental (o hasta 10, si lo eliges); el reloj se pausa si dejas de responder y cada error resta 5 s. |
 | Compilar sin Xcode | ⚠️ Parcial | **GitHub Actions: sí, sin Mac y sin Xcode de tu lado.** **Local:** necesitas una Mac con Xcode *instalado* (nunca lo abres y no hay `.xcodeproj`). Sin Xcode instalado no es posible: el SDK de iOS solo viene dentro de Xcode. |
 | Instalarla desde el iPhone | ✅ Sí, con la cuenta de desarrollador | Cada push firma la app **Ad Hoc** y la publica en GitHub Pages: se instala desde Safari en los iPhone registrados en tu cuenta de Apple Developer. Ver [Instalar desde Safari](#instalar-desde-safari-ad-hoc). |
@@ -63,8 +64,29 @@ Para escucharlos sin compilar la app: `make sounds` los genera como WAV en `buil
 - **Duración** (también en los ajustes de la alarma): hay que acumular **de 1 a 10 minutos** (1 minuto es la de siempre). La duración solo cambia cuánto tiempo hay que acumular: las reglas son las mismas y las operaciones se van complicando a lo largo de todo el reto.
 - Después de cada respuesta correcta el reloj corre 15 s (25 s con 3 dígitos, que tardan más); si no vuelves a acertar en ese tiempo se pausa. No se puede completar esperando.
 - Un error resta 5 s; saltar una operación también.
-- Si te quedas ese mismo tiempo sin acertar (15 s, o 25 s con 3 dígitos), la alarma vuelve a sonar dentro de la app.
+- Mientras haces el reto de la alarma, **la alarma sigue sonando dentro de la app**, a todo volumen, hasta que lo completas (ver [El volumen](#el-volumen)). El reto para desbloquear los ajustes y el de desactivarla antes no suenan.
 - Si sales de la app el reto empieza de cero, y si la cierras, la alarma vuelve a sonar en poco más de un minuto.
+
+### El volumen
+Hay dos volúmenes distintos y la app solo puede controlar uno:
+
+| Cuándo | Qué volumen usa | ¿La app lo puede subir? |
+|---|---|---|
+| La alarma de AlarmKit (pantalla bloqueada, Dynamic Island, cada repetición) | **Tono y alertas** de iOS | ❌ No. Apple no da ninguna API para eso ([lo confirma un ingeniero de Apple](https://developer.apple.com/forums/thread/821315)). |
+| Dentro de la app, mientras haces el reto | El de la música y los videos | ✅ Sí: lo sube al máximo |
+
+**Por qué a veces solo vibra:** con **«Cambiar con botones»** activado (Ajustes › Sonidos y vibración), los botones de volumen cambian el de tono y alertas cuando no está sonando nada, así que al bajar el volumen de la música también bajas el de la alarma. En lo más bajo, la alarma vibra y se ve en la pantalla, pero casi no se oye. Para que siempre suene fuerte, en **Ajustes › Sonidos y vibración**:
+1. Desactiva **«Cambiar con botones»**: los botones ya solo cambian el volumen de la música y los videos.
+2. Sube al máximo el volumen de **tono y alertas**.
+3. En **iOS 27**, la sección **«Alarmas y temporizadores»** permite darles a las alarmas su propio volumen, independiente del tono. Si lo activas, súbelo también al máximo. No hay documentación de si AlarmKit lo respeta, así que compruébalo con la prueba.
+4. Toca **Probar**, bloquea el iPhone y comprueba que se oye fuerte.
+
+La app explica esto mismo en **Volumen de la alarma**, en la pantalla principal.
+
+**Dentro de la app:** durante el reto de la alarma, Vigilia toca el sonido del día sin parar y **sube el volumen del iPhone al máximo**; si lo bajas con los botones, lo vuelve a subir. Al completar el reto (o al salir de la app) regresa el volumen a como estaba. Ignora el modo silencio. Detalles:
+- Solo sube el volumen en la **bocina del iPhone**. Con audífonos o una bocina Bluetooth conectada suena por ahí, al volumen que tengas, para no lastimarte los oídos.
+- iOS no tiene una API para cambiar el volumen: Vigilia mueve el control de un `MPVolumeView` oculto ([`src/App/SystemVolume.swift`](src/App/SystemVolume.swift)), el truco que usan las apps de alarma desde hace años. Si una versión de iOS lo rompiera, la alarma seguiría sonando dentro de la app, pero al volumen que tengas.
+- Si una alarma de AlarmKit o una llamada interrumpe el sonido, vuelve a empezar solo.
 
 ### Desactivarla antes de que suene
 Si ya estás despierto, desde **3 horas antes** de la hora de la alarma aparece en **Próxima alarma** el botón **«Desactivarla con el reto de 1 minuto»** (o de los minutos que hayas elegido). Es el mismo reto que harías al sonar (misma dificultad, misma duración y mismas reglas, aunque aquí lo puedes cancelar) y, al completarlo:
@@ -110,6 +132,7 @@ Programa una alarma de prueba en 1 minuto que se comporta igual que la real (rep
 
 ### Lo que iOS no deja hacer (para que no te sorprenda)
 - **El control de "Detener" de iOS no se puede quitar** y los botones físicos detienen la alarma. Por eso la estrategia es que regrese, no que sea imposible tocarla.
+- **El volumen de la alarma de AlarmKit lo pone iOS** (tono y alertas), no la app. Si está bajo, la alarma con el iPhone bloqueado suena bajo o solo vibra. Ver [El volumen](#el-volumen).
 - **Desinstalar la app o quitarle el permiso de Alarmas** (Ajustes › Vigilia) sí la apaga. Ninguna app puede impedirlo.
 - Los sonidos personalizados de AlarmKit deben durar **menos de 30 s** y, según reportes de otros desarrolladores, pueden sonar una sola vez en lugar de repetirse. Por eso cada sonido dura 28 s y la alarma vuelve a sonar cada minuto.
 - Apple indica que las apps **ocultas o bloqueadas con Face ID** no pueden usar AlarmKit: no ocultes ni bloquees Vigilia.

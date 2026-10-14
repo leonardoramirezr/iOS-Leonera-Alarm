@@ -15,6 +15,7 @@ struct HomeView: View {
                 alarmSection
                 upcomingSection
                 testSection
+                volumeSection
                 if let expiration = ProvisioningInfo.expirationDate {
                     signingSection(expiration)
                 }
@@ -156,6 +157,29 @@ struct HomeView: View {
         }
     }
 
+    /// AlarmKit plays at the volume iOS gives alarms and no app can raise it, so this
+    /// only explains which settings keep it loud.
+    private var volumeSection: some View {
+        let isIOS27 = ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 27
+        return Section {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Con el iPhone bloqueado la alarma suena al volumen de tono y alertas de iOS, y ninguna app puede subirlo. Si «Cambiar con botones» está activado, bajar el volumen con los botones también lo baja y la alarma puede sonar muy quedito o solo vibrar.")
+                Text("En Ajustes › Sonidos y vibración:")
+                Text("• Desactiva «Cambiar con botones».")
+                Text("• Sube al máximo el volumen de tono y alertas.")
+                if isIOS27 {
+                    Text("• Si en «Alarmas y temporizadores» les diste su propio volumen, súbelo también al máximo.")
+                }
+            }
+            .font(.callout)
+            .padding(.vertical, 4)
+        } header: {
+            Text("Volumen de la alarma")
+        } footer: {
+            Text("Compruébalo con «Probar» y el iPhone bloqueado. Dentro de la app, mientras haces el reto, la alarma suena a todo volumen en la bocina del iPhone aunque lo hayas bajado (con audífonos, al volumen que tengas).")
+        }
+    }
+
     private func signingSection(_ expiration: Date) -> some View {
         Section {
             LabeledContent("Vence") {
@@ -217,6 +241,7 @@ struct HomeView: View {
                     Text("• Para apagarla de verdad abre Vigilia (botón «Resolver reto») y haz el reto de cálculo mental. El tiempo solo avanza mientras respondes bien y cada error resta 5 segundos.")
                     Text("• Eliges la dificultad del reto (operaciones con números de 1, 2 o 3 dígitos) y cuánto dura: de 1 a 10 minutos.")
                     Text("• Desde 3 horas antes de que suene puedes desactivar esa alarma haciendo el mismo reto desde la app. Solo se salta esa vez; las siguientes suenan como siempre.")
+                    Text("• Mientras haces el reto, la alarma sigue sonando dentro de la app hasta que lo completas, a todo volumen en la bocina del iPhone aunque lo hayas bajado.")
                     Text("• Si sales de la app durante el reto, empieza de nuevo; si la cierras, la alarma vuelve a sonar en poco más de un minuto.")
                     Text("• Las alarmas viven en iOS (AlarmKit): suenan aunque cierres la app, reinicies el iPhone o esté en silencio o en Concentración.")
                 }
@@ -234,7 +259,7 @@ struct HomeView: View {
             if playing {
                 player.stop()
             } else {
-                player.play(sound.file, loop: false)
+                player.play(sound.file)
             }
         } label: {
             Label(playing ? "Detener" : "Escuchar", systemImage: playing ? "stop.circle.fill" : "play.circle.fill")
