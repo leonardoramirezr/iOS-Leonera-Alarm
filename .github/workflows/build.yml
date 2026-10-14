@@ -72,18 +72,12 @@ jobs:
             exit 1
           fi
 
-      # Bundle ID: repository variable APP_BUNDLE_ID, or com.<owner>.<repo> in lowercase.
-      # Extensions use <bundle>.<suffix>.
+      # Bundle ID: fixed, never derived from the repository or overridden
+      # (keep in sync with APP_BUNDLE_ID in project.yml). Extensions use <bundle>.<suffix>.
       - name: Choose identifiers
         id: ids
-        env:
-          APP_BUNDLE_ID_VAR: ${{ vars.APP_BUNDLE_ID }}
         run: |
-          bundle="${APP_BUNDLE_ID_VAR}"
-          if [ -z "${bundle}" ]; then
-            bundle="com.${GITHUB_REPOSITORY_OWNER}.${GITHUB_REPOSITORY#*/}"
-            bundle="$(echo "${bundle}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9.\n-' '-')"
-          fi
+          bundle="com.leonardoramirezr.leoneraalarm"
           echo "bundle_id=${bundle}" >> "$GITHUB_OUTPUT"
           echo "Bundle ID: ${bundle}"
 
