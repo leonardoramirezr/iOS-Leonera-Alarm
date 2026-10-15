@@ -99,8 +99,19 @@ No se puede usar mientras una alarma (o la prueba) está sonando o tiene el reto
 
 Por dentro: como una alarma semanal de AlarmKit no puede saltarse una semana, la de ese día se reemplaza por una alarma única para la semana siguiente; cuando ya pasó la hora desactivada, la app vuelve a ponerla semanal.
 
+### Cambiar solo mañana
+En la sección **Alarma**, **«Cambiar solo mañana»** pone otra hora para el día siguiente sin tocar los demás días:
+- Si mañana suena a las 8:00, puedes cambiarla a las 9:00: ese día solo suena a las 9:00 y la de las 8:00 no.
+- Si mañana normalmente no suena (por ejemplo, un domingo), suena solo esa vez a la hora que elijas.
+- Funciona como cualquier alarma: no se puede posponer, vuelve a sonar hasta completar el reto y se puede desactivar antes.
+- Forma parte de los ajustes, así que también queda bloqueada si los cambios están bloqueados.
+
+Por dentro es una alarma única de AlarmKit; la semanal de ese día se reemplaza por una única para la semana siguiente, igual que al desactivarla antes.
+
 ### Ajustes bloqueados
-Mientras la alarma está activada, **cambiar la hora, los días, la dificultad o la duración del reto, o desactivarla, también exige el reto** (luego quedan desbloqueados 5 minutos). El reto para desbloquear usa la dificultad que ya tenías, pero siempre dura 1 minuto, sea cual sea la duración elegida para la alarma. Así no puedes apagarla medio dormido desde los ajustes. Activarla es libre y, al hacerlo, tienes 5 minutos para ajustar la hora, los días, la dificultad y la duración antes de que se bloquee.
+El interruptor **«Bloquear cambios»** (activado por defecto) decide si los ajustes se bloquean. Desactivado, nunca se bloquean y puedes cambiar o apagar la alarma sin el reto. Para desactivarlo con los ajustes ya bloqueados hay que desbloquearlos primero; al volver a activarlo tienes 5 minutos antes de que se bloqueen.
+
+Con el bloqueo activado, mientras la alarma está activada, **cambiar la hora, los días, la dificultad o la duración del reto, o desactivarla, también exige el reto** (luego quedan desbloqueados 5 minutos). El reto para desbloquear usa la dificultad que ya tenías, pero siempre dura 1 minuto, sea cual sea la duración elegida para la alarma. Así no puedes apagarla medio dormido desde los ajustes. Activarla es libre y, al hacerlo, tienes 5 minutos para ajustar la hora, los días, la dificultad y la duración antes de que se bloquee.
 
 **Mientras la alarma está sonando** (o ya sonó y el reto sigue pendiente, incluida la prueba), cualquier cambio de hora, días, dificultad, duración del reto o del interruptor **se ignora**, aunque los ajustes estén desbloqueados. Así cambiar la hora no puede silenciarla ni hacer que deje de volver: solo el reto la apaga.
 

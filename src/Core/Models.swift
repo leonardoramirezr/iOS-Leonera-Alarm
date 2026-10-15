@@ -17,6 +17,12 @@ struct AlarmSettings: Equatable {
     /// here ring at `hour:minute`. Kept while the same time is used, so switching
     /// back to per-day times restores them.
     var dayTimes: [Int: AlarmTime] = [:]
+    /// When false, the settings never lock: they can change or be turned off at any
+    /// time without the challenge.
+    var locksSettings = true
+    /// A one-time change for a single day: on that calendar day the alarm rings only
+    /// at this moment, instead of the usual alarm of its weekday (if it has one).
+    var dayOverride: Date?
 
     var defaultTime: AlarmTime {
         AlarmTime(hour: hour, minute: minute)
@@ -36,7 +42,8 @@ struct AlarmSettings: Equatable {
 
 extension AlarmSettings: Codable {
     private enum CodingKeys: String, CodingKey {
-        case isEnabled, hour, minute, weekdays, sameTimeEveryDay, dayTimes, difficulty, challengeDuration
+        case isEnabled, hour, minute, weekdays, sameTimeEveryDay, dayTimes, locksSettings, dayOverride
+        case difficulty, challengeDuration
     }
 
     // Every key is optional so that settings saved by older versions keep loading.
@@ -49,6 +56,8 @@ extension AlarmSettings: Codable {
         weekdays = try container.decodeIfPresent(Set<Int>.self, forKey: .weekdays) ?? weekdays
         sameTimeEveryDay = try container.decodeIfPresent(Bool.self, forKey: .sameTimeEveryDay) ?? sameTimeEveryDay
         dayTimes = try container.decodeIfPresent([Int: AlarmTime].self, forKey: .dayTimes) ?? dayTimes
+        locksSettings = try container.decodeIfPresent(Bool.self, forKey: .locksSettings) ?? locksSettings
+        dayOverride = try container.decodeIfPresent(Date.self, forKey: .dayOverride)
         // An unknown level (saved by a newer version) must not lose the alarm.
         difficulty = (try? container.decodeIfPresent(ChallengeDifficulty.self, forKey: .difficulty)) ?? difficulty
         challengeDuration = (try? container.decodeIfPresent(ChallengeDuration.self, forKey: .challengeDuration)) ?? challengeDuration
@@ -75,8 +84,9 @@ struct MainAlarmPlan: Equatable {
     var time: AlarmTime
     /// The next time it rings.
     var fireDate: Date
-    /// The occurrence turned off in advance, if any. A weekly alarm can't skip one
-    /// week, so until it passes a one-shot alarm at `fireDate` stands in for it.
+    /// The occurrence skipped (turned off in advance or replaced by the change of
+    /// one day), if any. A weekly alarm can't skip one week, so until it passes a
+    /// one-shot alarm at `fireDate` stands in for it.
     var skipped: Date?
 
     var isOneShot: Bool { skipped != nil }
@@ -87,6 +97,12 @@ struct RetryRecord: Codable, Equatable {
     var id: UUID
     var occurrence: Date
     var fireDate: Date
+}
+
+/// The one-shot alarm of `AlarmSettings.dayOverride`.
+struct DayOverrideRecord: Codable, Equatable {
+    var id: UUID
+    var occurrence: Date
 }
 
 struct TestRecord: Codable, Equatable {
@@ -114,6 +130,7 @@ struct VigiliaState: Equatable {
     /// Occurrences before this moment never start a session (e.g. the alarm was just set).
     var armedSince = Date.distantPast
     var mains: [MainAlarmRecord] = []
+    var dayOverrideAlarm: DayOverrideRecord?
     var retries: [RetryRecord] = []
     var test: TestRecord?
     var completedOccurrences: [Date] = []
@@ -171,15 +188,29 @@ struct VigiliaState: Equatable {
         return true
     }
 
+    /// The usual alarm of that day is replaced by `settings.dayOverride`.
+    func isOverridden(_ occurrence: Date, calendar: Calendar) -> Bool {
+        settings.dayOverride.map { calendar.isDate(occurrence, inSameDayAs: $0) } ?? false
+    }
+
+    /// The one-time alarm of `settings.dayOverride`, while it has yet to ring and
+    /// was not turned off in advance.
+    func pendingDayOverride(after now: Date) -> Date? {
+        guard settings.isEnabled, let override = settings.dayOverride,
+              override > now, !isCompleted(override) else { return nil }
+        return override
+    }
+
     /// The next ring of every selected weekday. An occurrence that was turned off in
-    /// advance (completed before it rang) is skipped: that weekday rings a week later.
+    /// advance (completed before it rang) or falls on the day of `settings.dayOverride`
+    /// is skipped: that weekday rings a week later.
     func mainAlarmPlans(after now: Date, calendar: Calendar) -> [Int: MainAlarmPlan] {
         guard settings.isEnabled else { return [:] }
         var plans: [Int: MainAlarmPlan] = [:]
         for (weekday, time) in settings.schedule {
             guard let next = AlarmMath.nextOccurrence(
                 weekday: weekday, hour: time.hour, minute: time.minute, after: now, calendar: calendar) else { continue }
-            if isCompleted(next) {
+            if isCompleted(next) || isOverridden(next, calendar: calendar) {
                 guard let following = AlarmMath.nextOccurrence(
                     weekday: weekday, hour: time.hour, minute: time.minute, after: next, calendar: calendar) else { continue }
                 plans[weekday] = MainAlarmPlan(weekday: weekday, time: time, fireDate: following, skipped: next)
@@ -192,12 +223,17 @@ struct VigiliaState: Equatable {
 
     /// The next time the alarm will actually ring.
     func nextOccurrence(after now: Date, calendar: Calendar) -> Date? {
-        mainAlarmPlans(after: now, calendar: calendar).values.map(\.fireDate).min()
+        let mains = mainAlarmPlans(after: now, calendar: calendar).values.map(\.fireDate)
+        return (mains + [pendingDayOverride(after: now)].compactMap { $0 }).min()
     }
 
     /// The next upcoming occurrence that was turned off in advance.
     func dismissedOccurrence(after now: Date, calendar: Calendar) -> Date? {
-        mainAlarmPlans(after: now, calendar: calendar).values.compactMap(\.skipped).min()
+        var dismissed = mainAlarmPlans(after: now, calendar: calendar).values.compactMap(\.skipped).filter(isCompleted)
+        if settings.isEnabled, let override = settings.dayOverride, override > now, isCompleted(override) {
+            dismissed.append(override)
+        }
+        return dismissed.min()
     }
 
     /// The next alarm, when it is close enough to turn it off in advance by doing its
@@ -223,8 +259,11 @@ struct VigiliaState: Equatable {
         if settings.isEnabled,
            let latest = AlarmMath.latestOccurrence(
                schedule: settings.schedule, notAfter: now.addingTimeInterval(AlarmRules.earlyTolerance), calendar: calendar),
-           latest >= armedSince {
+           latest >= armedSince, !isOverridden(latest, calendar: calendar) {
             candidates.append(ActiveSession(occurrence: latest, isTest: false))
+        }
+        if settings.isEnabled, let override = settings.dayOverride, override >= armedSince {
+            candidates.append(ActiveSession(occurrence: override, isTest: false))
         }
         for retry in retries where retry.fireDate > now
             && !candidates.contains(where: { $0.occurrence.isSameInstant(as: retry.occurrence) }) {
@@ -245,7 +284,7 @@ struct VigiliaState: Equatable {
 
 extension VigiliaState: Codable {
     private enum CodingKeys: String, CodingKey {
-        case settings, armedSince, mains, retries, test, completedOccurrences, history, settingsUnlockedUntil
+        case settings, armedSince, mains, dayOverrideAlarm, retries, test, completedOccurrences, history, settingsUnlockedUntil
     }
 
     // Every key is optional so that older saved data keeps loading after updates.
@@ -255,6 +294,7 @@ extension VigiliaState: Codable {
         settings = try container.decodeIfPresent(AlarmSettings.self, forKey: .settings) ?? settings
         armedSince = try container.decodeIfPresent(Date.self, forKey: .armedSince) ?? armedSince
         mains = try container.decodeIfPresent([MainAlarmRecord].self, forKey: .mains) ?? []
+        dayOverrideAlarm = try container.decodeIfPresent(DayOverrideRecord.self, forKey: .dayOverrideAlarm)
         retries = try container.decodeIfPresent([RetryRecord].self, forKey: .retries) ?? []
         test = try container.decodeIfPresent(TestRecord.self, forKey: .test)
         completedOccurrences = try container.decodeIfPresent([Date].self, forKey: .completedOccurrences) ?? []
