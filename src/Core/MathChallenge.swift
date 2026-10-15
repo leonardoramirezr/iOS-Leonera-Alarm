@@ -190,7 +190,8 @@ struct ChallengeRules: Equatable {
     init(difficulty: ChallengeDifficulty = .twoDigits, duration: ChallengeDuration = .oneMinute) {
         self.difficulty = difficulty
         requiredSeconds = duration.seconds
-        // Three-digit operations take longer to work out.
+        // Three-digit operations take longer to work out, and the alarm comes back
+        // inside the app once this much time passes without a correct answer.
         graceSeconds = difficulty == .threeDigits ? 25 : 15
     }
 }
