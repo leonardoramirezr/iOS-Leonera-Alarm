@@ -1,8 +1,8 @@
 import AVFoundation
 import Foundation
 
-/// In-app playback: previews, and the alarm while its challenge is on screen. Uses the
-/// playback category so it ignores the silent switch.
+/// In-app playback: previews, and the alarm that comes back when the challenge is
+/// left idle. Uses the playback category so it ignores the silent switch.
 @MainActor
 final class AlarmAudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
     static let shared = AlarmAudioPlayer()

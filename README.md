@@ -20,7 +20,7 @@ Se compila de dos formas: en **GitHub Actions** (sin Mac), que firma la app Ad H
 | Usar AlarmKit | ✅ Sí | Las alarmas las programa iOS con `AlarmManager`: suenan con el iPhone en silencio, en Concentración, con la app cerrada y después de reiniciar. |
 | Sonido diferente cada día | ✅ Sí | 90 sonidos propios en rotación barajada. Nunca suena el mismo dos días seguidos. |
 | Sin posponer, ni cerrando la app | ✅ Sí, con un matiz | iOS **siempre** muestra un control para detener la alarma y los botones físicos también la detienen; ninguna app puede quitar eso. Vigilia lo resuelve haciendo que la alarma **vuelva a sonar** (cada minuto y luego más espaciado, durante una hora) hasta que completes el reto. Esas repeticiones ya están programadas en iOS, así que cerrar o matar la app no las detiene. |
-| Que suene a todo volumen aunque el volumen esté bajo | ⚠️ Parcial | **Durante el reto, sí:** la alarma suena todo el tiempo dentro de la app y sube el volumen del iPhone al máximo (en su bocina). **Con el iPhone bloqueado, no:** AlarmKit suena al volumen de tono y alertas de iOS y ninguna app puede subirlo; hay que dejarlo al máximo y desactivar «Cambiar con botones». Ver [El volumen](#el-volumen). |
+| Que suene a todo volumen aunque el volumen esté bajo | ⚠️ Parcial | **Durante el reto, sí:** si dejas de acertar, la alarma vuelve a sonar dentro de la app y sube el volumen del iPhone al máximo (en su bocina). **Con el iPhone bloqueado, no:** AlarmKit suena al volumen de tono y alertas de iOS y ninguna app puede subirlo; hay que dejarlo al máximo y desactivar «Cambiar con botones». Ver [El volumen](#el-volumen). |
 | Apagarla con un ejercicio mental de 1 minuto | ✅ Sí | 1 minuto de cálculo mental (o hasta 10, si lo eliges); el reloj se pausa si dejas de responder y cada error resta 5 s. |
 | Compilar sin Xcode | ⚠️ Parcial | **GitHub Actions: sí, sin Mac y sin Xcode de tu lado.** **Local:** necesitas una Mac con Xcode *instalado* (nunca lo abres y no hay `.xcodeproj`). Sin Xcode instalado no es posible: el SDK de iOS solo viene dentro de Xcode. |
 | Instalarla desde el iPhone | ✅ Sí, con la cuenta de desarrollador | Cada push firma la app **Ad Hoc** y la publica en GitHub Pages: se instala desde Safari en los iPhone registrados en tu cuenta de Apple Developer. Ver [Instalar desde Safari](#instalar-desde-safari-ad-hoc). |
@@ -64,7 +64,7 @@ Para escucharlos sin compilar la app: `make sounds` los genera como WAV en `buil
 - **Duración** (también en los ajustes de la alarma): hay que acumular **de 1 a 10 minutos** (1 minuto es la de siempre). La duración solo cambia cuánto tiempo hay que acumular: las reglas son las mismas y las operaciones se van complicando a lo largo de todo el reto.
 - Después de cada respuesta correcta el reloj corre 15 s (25 s con 3 dígitos, que tardan más); si no vuelves a acertar en ese tiempo se pausa. No se puede completar esperando.
 - Un error resta 5 s; saltar una operación también.
-- Mientras haces el reto de la alarma, **la alarma sigue sonando dentro de la app**, a todo volumen, hasta que lo completas (ver [El volumen](#el-volumen)). El reto para desbloquear los ajustes y el de desactivarla antes no suenan.
+- Si te quedas ese mismo tiempo sin acertar (15 s, o 25 s con 3 dígitos), **la alarma vuelve a sonar dentro de la app**, a todo volumen, hasta tu siguiente respuesta correcta (ver [El volumen](#el-volumen)). El reto para desbloquear los ajustes y el de desactivarla antes no suenan.
 - Si sales de la app el reto empieza de cero, y si la cierras, la alarma vuelve a sonar en poco más de un minuto.
 
 ### El volumen
@@ -73,7 +73,7 @@ Hay dos volúmenes distintos y la app solo puede controlar uno:
 | Cuándo | Qué volumen usa | ¿La app lo puede subir? |
 |---|---|---|
 | La alarma de AlarmKit (pantalla bloqueada, Dynamic Island, cada repetición) | **Tono y alertas** de iOS | ❌ No. Apple no da ninguna API para eso ([lo confirma un ingeniero de Apple](https://developer.apple.com/forums/thread/821315)). |
-| Dentro de la app, mientras haces el reto | El de la música y los videos | ✅ Sí: lo sube al máximo |
+| Dentro de la app, cuando la alarma vuelve a sonar durante el reto | El de la música y los videos | ✅ Sí: lo sube al máximo |
 
 **Por qué a veces solo vibra:** con **«Cambiar con botones»** activado (Ajustes › Sonidos y vibración), los botones de volumen cambian el de tono y alertas cuando no está sonando nada, así que al bajar el volumen de la música también bajas el de la alarma. En lo más bajo, la alarma vibra y se ve en la pantalla, pero casi no se oye. Para que siempre suene fuerte, en **Ajustes › Sonidos y vibración**:
 1. Desactiva **«Cambiar con botones»**: los botones ya solo cambian el volumen de la música y los videos.
@@ -83,7 +83,7 @@ Hay dos volúmenes distintos y la app solo puede controlar uno:
 
 La app explica esto mismo en **Volumen de la alarma**, en la pantalla principal.
 
-**Dentro de la app:** durante el reto de la alarma, Vigilia toca el sonido del día sin parar y **sube el volumen del iPhone al máximo**; si lo bajas con los botones, lo vuelve a subir. Al completar el reto (o al salir de la app) regresa el volumen a como estaba. Ignora el modo silencio. Detalles:
+**Dentro de la app:** durante el reto de la alarma, si te quedas 15 s sin acertar (25 s con 3 dígitos), Vigilia vuelve a tocar el sonido del día y **sube el volumen del iPhone al máximo**; si lo bajas con los botones, lo vuelve a subir. En cuanto aciertas deja de sonar y regresa el volumen a como estaba; si vuelves a quedarte sin acertar, vuelve a sonar. Ignora el modo silencio. Detalles:
 - Solo sube el volumen en la **bocina del iPhone**. Con audífonos o una bocina Bluetooth conectada suena por ahí, al volumen que tengas, para no lastimarte los oídos.
 - iOS no tiene una API para cambiar el volumen: Vigilia mueve el control de un `MPVolumeView` oculto ([`src/App/SystemVolume.swift`](src/App/SystemVolume.swift)), el truco que usan las apps de alarma desde hace años. Si una versión de iOS lo rompiera, la alarma seguiría sonando dentro de la app, pero al volumen que tengas.
 - Si una alarma de AlarmKit o una llamada interrumpe el sonido, vuelve a empezar solo.

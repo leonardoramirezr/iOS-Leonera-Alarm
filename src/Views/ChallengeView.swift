@@ -231,8 +231,10 @@ struct ChallengeView: View {
             finish()
             return
         }
-        // A wake-up challenge rings the whole time, at full volume, until it is completed.
-        if let occurrence, let sound = controller.soundInfo(for: occurrence) {
+        // Left idle during a wake-up challenge: the alarm comes back inside the app, at
+        // full volume, until the next correct answer.
+        if let occurrence, challenge.idleTime(at: date) >= challenge.rules.graceSeconds,
+           let sound = controller.soundInfo(for: occurrence) {
             AlarmAudioPlayer.shared.ring(sound.file)
         }
     }
@@ -257,6 +259,7 @@ struct ChallengeView: View {
         switch outcome {
         case .correct:
             flash = .correct
+            AlarmAudioPlayer.shared.stop()
             controller.challengeMadeProgress(request)
         case .wrong:
             flash = .wrong

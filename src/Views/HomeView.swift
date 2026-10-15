@@ -176,7 +176,7 @@ struct HomeView: View {
         } header: {
             Text("Volumen de la alarma")
         } footer: {
-            Text("Compruébalo con «Probar» y el iPhone bloqueado. Dentro de la app, mientras haces el reto, la alarma suena a todo volumen en la bocina del iPhone aunque lo hayas bajado (con audífonos, al volumen que tengas).")
+            Text("Compruébalo con «Probar» y el iPhone bloqueado. Dentro de la app, si durante el reto te quedas 15 s sin acertar (25 s con 3 dígitos), la alarma vuelve a sonar a todo volumen en la bocina del iPhone aunque lo hayas bajado (con audífonos, al volumen que tengas).")
         }
     }
 
@@ -241,7 +241,7 @@ struct HomeView: View {
                     Text("• Para apagarla de verdad abre Vigilia (botón «Resolver reto») y haz el reto de cálculo mental. El tiempo solo avanza mientras respondes bien y cada error resta 5 segundos.")
                     Text("• Eliges la dificultad del reto (operaciones con números de 1, 2 o 3 dígitos) y cuánto dura: de 1 a 10 minutos.")
                     Text("• Desde 3 horas antes de que suene puedes desactivar esa alarma haciendo el mismo reto desde la app. Solo se salta esa vez; las siguientes suenan como siempre.")
-                    Text("• Mientras haces el reto, la alarma sigue sonando dentro de la app hasta que lo completas, a todo volumen en la bocina del iPhone aunque lo hayas bajado.")
+                    Text("• Si durante el reto te quedas 15 s sin acertar (25 s con 3 dígitos), la alarma vuelve a sonar dentro de la app hasta tu siguiente respuesta correcta, a todo volumen en la bocina del iPhone aunque lo hayas bajado.")
                     Text("• Si sales de la app durante el reto, empieza de nuevo; si la cierras, la alarma vuelve a sonar en poco más de un minuto.")
                     Text("• Las alarmas viven en iOS (AlarmKit): suenan aunque cierres la app, reinicies el iPhone o esté en silencio o en Concentración.")
                 }
