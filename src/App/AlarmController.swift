@@ -97,7 +97,14 @@ final class AlarmController: ObservableObject {
     // MARK: - Derived values for the UI
 
     var isSettingsLocked: Bool {
-        state.settings.isEnabled && (state.settingsUnlockedUntil ?? .distantPast) <= now
+        state.settings.isEnabled && state.settings.locksSettings
+            && (state.settingsUnlockedUntil ?? .distantPast) <= now
+    }
+
+    /// The one-time alarm that replaces the usual one of its day, until it rings.
+    var dayOverride: Date? {
+        guard let override = state.settings.dayOverride, override > now else { return nil }
+        return override
     }
 
     /// An alarm is going off, or went off and its challenge is still pending.
@@ -200,6 +207,44 @@ final class AlarmController: ObservableObject {
     func updateSettings(_ change: (inout AlarmSettings) -> Void) {
         guard !isSettingsLocked else { return }
         applySettings(change)
+    }
+
+    /// Turning the lock back on leaves the usual few minutes to keep adjusting.
+    func setLocksSettings(_ locks: Bool) {
+        now = Date()
+        refreshAlerting()
+        guard !isSettingsLocked, !isAlarmRinging, locks != state.settings.locksSettings else { return }
+        state.settings.locksSettings = locks
+        if locks, state.settings.isEnabled, (state.settingsUnlockedUntil ?? .distantPast) <= now {
+            state.settingsUnlockedUntil = now.addingTimeInterval(AlarmRules.settingsUnlockDuration)
+        }
+        save()
+    }
+
+    /// The usual time of the day after `date`, or nil when that day has no alarm.
+    func usualTime(onDayAfter date: Date) -> AlarmTime? {
+        guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: date) else { return nil }
+        let weekday = calendar.component(.weekday, from: tomorrow)
+        return state.settings.weekdays.contains(weekday) ? state.settings.time(on: weekday) : nil
+    }
+
+    /// Makes tomorrow ring only at `time` (nil removes the change).
+    func setTomorrowOverride(_ time: AlarmTime?) {
+        guard let time else {
+            updateSettings { $0.dayOverride = nil }
+            return
+        }
+        let today = Date()
+        guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: today),
+              let date = calendar.date(bySettingHour: time.hour, minute: time.minute, second: 0, of: tomorrow) else { return }
+        updateSettings { $0.dayOverride = date }
+    }
+
+    /// Changes the time of the one-time alarm, keeping its day.
+    func setDayOverrideTime(_ time: AlarmTime) {
+        guard let current = dayOverride,
+              let date = calendar.date(bySettingHour: time.hour, minute: time.minute, second: 0, of: current) else { return }
+        updateSettings { $0.dayOverride = date }
     }
 
     func setDifficulty(_ difficulty: ChallengeDifficulty) {
@@ -472,6 +517,7 @@ final class AlarmController: ObservableObject {
         }
 
         await reconcileMainAlarms(live: live, now: now)
+        await reconcileDayOverride(live: live, now: now)
 
         if let next, !state.retries.contains(where: { $0.occurrence.isSameInstant(as: next) }) {
             await scheduleRetries(
@@ -483,6 +529,7 @@ final class AlarmController: ObservableObject {
         // Anything else that belongs to the app but is not tracked is stale.
         var tracked = Set(state.mains.map(\.id) + state.retries.map(\.id))
         if let test = state.test { tracked.insert(test.id) }
+        if let override = state.dayOverrideAlarm { tracked.insert(override.id) }
         for (id, alarm) in live where !tracked.contains(id) && alarm.state != .alerting {
             try? manager.cancel(id: id)
         }
@@ -551,6 +598,25 @@ final class AlarmController: ObservableObject {
             }
         }
         state.mains = kept
+    }
+
+    /// A one-shot alarm for the change of one day, while it has yet to ring.
+    private func reconcileDayOverride(live: [UUID: Alarm], now: Date) async {
+        let wanted = state.pendingDayOverride(after: now)
+        if let record = state.dayOverrideAlarm, let alarm = live[record.id] {
+            if alarm.state == .alerting { return }
+            if let wanted, record.occurrence.isSameInstant(as: wanted) { return }
+            try? manager.cancel(id: record.id)
+        }
+        state.dayOverrideAlarm = nil
+        guard let wanted else { return }
+        let id = UUID()
+        do {
+            try await scheduleAlarm(id: id, kind: .main, schedule: .fixed(wanted), sound: soundInfo(for: wanted)?.file)
+            state.dayOverrideAlarm = DayOverrideRecord(id: id, occurrence: wanted)
+        } catch {
+            report(error)
+        }
     }
 
     // MARK: - AlarmKit

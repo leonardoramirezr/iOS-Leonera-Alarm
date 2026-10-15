@@ -16,6 +16,7 @@ struct LogicTests {
         testSessions()
         testSettingsWhileRinging()
         testEarlyDismissal()
+        testDayOverride()
         testStoredData()
         testHistory()
         testStatistics()
@@ -387,6 +388,67 @@ struct LogicTests {
         expect(try! JSONDecoder().decode(VigiliaState.self, from: JSONEncoder().encode(state)) == state, "one-shot alarms survive a round trip")
     }
 
+    static func testDayOverride() {
+        var state = VigiliaState()
+        state.settings = AlarmSettings(isEnabled: true, hour: 8, minute: 0, weekdays: [2, 3, 4, 5, 6])
+        state.armedSince = date("2026-10-08T22:00:00")
+        let monday = date("2026-10-12T08:00:00")
+        let tuesday = date("2026-10-13T08:00:00")
+        let nextMonday = date("2026-10-19T08:00:00")
+
+        // Saturday night: an alarm only for Sunday, which usually doesn't ring.
+        var sunday = state
+        let saturdayNight = date("2026-10-10T22:00:00")
+        let sundayAlarm = date("2026-10-11T09:30:00")
+        expect(sunday.changeSettings(at: saturdayNight, isAlerting: false, calendar: calendar) { $0.dayOverride = sundayAlarm },
+               "tomorrow's time can be set")
+        expect(sunday.nextOccurrence(after: saturdayNight, calendar: calendar) == sundayAlarm, "Sunday rings this once")
+        expect(sunday.mainAlarmPlans(after: saturdayNight, calendar: calendar)[2]
+               == MainAlarmPlan(weekday: 2, time: AlarmTime(hour: 8, minute: 0), fireDate: monday),
+               "Monday stays as usual")
+        expect(sunday.activeSession(at: sundayAlarm.addingTimeInterval(30), calendar: calendar)?.occurrence == sundayAlarm,
+               "Sunday's alarm needs the challenge")
+        expect(sunday.nextOccurrence(after: sundayAlarm.addingTimeInterval(60), calendar: calendar) == monday,
+               "after it, Monday is next")
+        expect(sunday.activeSession(at: monday.addingTimeInterval(30), calendar: calendar)?.occurrence == monday, "Monday rings")
+
+        // Sunday night: Monday at 9:00 instead of 8:00.
+        let sundayNight = date("2026-10-11T22:00:00")
+        let mondayAlarm = date("2026-10-12T09:00:00")
+        expect(state.changeSettings(at: sundayNight, isAlerting: false, calendar: calendar) { $0.dayOverride = mondayAlarm },
+               "Monday's time can be changed")
+        expect(state.nextOccurrence(after: sundayNight, calendar: calendar) == mondayAlarm, "Monday rings at 9:00")
+        expect(state.mainAlarmPlans(after: sundayNight, calendar: calendar)[2]
+               == MainAlarmPlan(weekday: 2, time: AlarmTime(hour: 8, minute: 0), fireDate: nextMonday, skipped: monday),
+               "the 8:00 alarm of this Monday is skipped")
+        expect(state.mainAlarmPlans(after: sundayNight, calendar: calendar)[3]?.fireDate == tuesday, "Tuesday stays as usual")
+        expect(state.dismissedOccurrence(after: sundayNight, calendar: calendar) == nil, "nothing shows as turned off")
+        expect(state.activeSession(at: monday.addingTimeInterval(30), calendar: calendar) == nil, "nothing at 8:00")
+        expect(state.activeSession(at: monday.addingTimeInterval(50 * 60), calendar: calendar) == nil, "nor before 9:00")
+        expect(state.earlyDismissibleOccurrence(at: date("2026-10-12T07:00:00"), calendar: calendar) == mondayAlarm,
+               "the 9:00 alarm can be turned off in advance")
+        expect(state.activeSession(at: mondayAlarm.addingTimeInterval(30), calendar: calendar)?.occurrence == mondayAlarm,
+               "9:00 needs the challenge")
+
+        state.markCompleted(mondayAlarm)
+        let after = mondayAlarm.addingTimeInterval(5 * 60)
+        expect(state.activeSession(at: after, calendar: calendar) == nil, "completing it ends the session")
+        expect(state.nextOccurrence(after: after, calendar: calendar) == tuesday, "Tuesday is next")
+        expect(state.mainAlarmPlans(after: after, calendar: calendar)[2]
+               == MainAlarmPlan(weekday: 2, time: AlarmTime(hour: 8, minute: 0), fireDate: nextMonday),
+               "Mondays are weekly again")
+        expect(state.activeSession(at: nextMonday.addingTimeInterval(30), calendar: calendar)?.occurrence == nextMonday,
+               "next Monday rings at 8:00")
+
+        expect(state.dismissedOccurrence(after: sundayNight, calendar: calendar) == mondayAlarm,
+               "turned off in advance, it shows as turned off")
+        expect(state.nextOccurrence(after: sundayNight, calendar: calendar) == tuesday, "and Tuesday is next")
+
+        var off = state
+        off.settings.isEnabled = false
+        expect(off.nextOccurrence(after: sundayNight, calendar: calendar) == nil, "nothing rings while the alarm is off")
+    }
+
     static func testStoredData() {
         // Saved by the version that only had one time for every day.
         let legacy = Data(#"{"settings":{"isEnabled":true,"hour":6,"minute":15,"weekdays":[2,3,4,5,6]},"armedSince":700000000}"#.utf8)
@@ -403,6 +465,14 @@ struct LogicTests {
         state.settings.dayTimes = [1: AlarmTime(hour: 10, minute: 0), 6: AlarmTime(hour: 5, minute: 45)]
         let data = try! JSONEncoder().encode(state)
         expect(try! JSONDecoder().decode(VigiliaState.self, from: data) == state, "per-day times survive a round trip")
+
+        state.settings.locksSettings = false
+        state.settings.dayOverride = date("2026-10-12T09:00:00")
+        state.dayOverrideAlarm = DayOverrideRecord(id: UUID(), occurrence: date("2026-10-12T09:00:00"))
+        let changed = try! JSONEncoder().encode(state)
+        expect(try! JSONDecoder().decode(VigiliaState.self, from: changed) == state, "the lock and tomorrow's time survive a round trip")
+        expect(decoded?.settings.locksSettings == true && decoded?.settings.dayOverride == nil,
+               "previous settings keep locking and have no change for tomorrow")
     }
 
     static func testSessions() {

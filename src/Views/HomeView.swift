@@ -77,10 +77,35 @@ struct HomeView: View {
                         .disabled(!isEditable)
                 }
             }
+            Toggle(isOn: tomorrowBinding) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Cambiar solo mañana", systemImage: "calendar.badge.clock")
+                    Text(tomorrowDescription)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .disabled(!isEditable || !settings.isEnabled)
+            if let override = controller.dayOverride {
+                DatePicker("Hora del \(override.formatted(.dateTime.weekday(.wide).day()))",
+                           selection: dayOverrideTimeBinding, displayedComponents: .hourAndMinute)
+                    .disabled(!isEditable)
+            }
             DifficultyPicker(selection: difficultyBinding)
                 .disabled(!isEditable)
             DurationPicker(selection: durationBinding)
                 .disabled(!isEditable)
+            Toggle(isOn: locksSettingsBinding) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Bloquear cambios", systemImage: "lock.fill")
+                    Text(settings.locksSettings
+                         ? "Unos minutos después de activar la alarma se bloquea: cambiarla o apagarla requiere el reto mental."
+                         : "La alarma nunca se bloquea: puedes cambiarla o apagarla cuando quieras sin hacer el reto.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .disabled(!isEditable)
             if controller.isAlarmRinging {
                 Label("La alarma está sonando: no se puede cambiar hasta que completes el reto.", systemImage: "alarm.waves.left.and.right.fill")
                     .foregroundStyle(.orange)
@@ -90,16 +115,18 @@ struct HomeView: View {
                 } label: {
                     Label("Desbloquear con el reto de \(ChallengeDuration.settingsUnlock.text)", systemImage: "lock.fill")
                 }
-            } else if controller.state.settings.isEnabled, let until = controller.state.settingsUnlockedUntil, until > controller.now {
+            } else if settings.isEnabled, settings.locksSettings, let until = controller.state.settingsUnlockedUntil, until > controller.now {
                 Label("Desbloqueada hasta las \(until.formatted(date: .omitted, time: .shortened))", systemImage: "lock.open.fill")
                     .foregroundStyle(.secondary)
             }
         } header: {
             Text("Alarma")
         } footer: {
-            Text(controller.state.settings.isEnabled
-                 ? "Mientras esté activada, para cambiarla o apagarla tienes que completar el reto mental."
-                 : "Al activarla tendrás 5 minutos para ajustarla; después queda bloqueada y cambiarla o apagarla requiere el reto mental.")
+            if settings.locksSettings {
+                Text(settings.isEnabled
+                     ? "Mientras esté activada, para cambiarla o apagarla tienes que completar el reto mental."
+                     : "Al activarla tendrás 5 minutos para ajustarla; después queda bloqueada y cambiarla o apagarla requiere el reto mental.")
+            }
         }
     }
 
@@ -240,6 +267,7 @@ struct HomeView: View {
                     Text("• No existe posponer. Si la detienes desde la pantalla bloqueada o con los botones, vuelve a sonar cada minuto y luego más espaciado durante una hora.")
                     Text("• Para apagarla de verdad abre Vigilia (botón «Resolver reto») y haz el reto de cálculo mental. El tiempo solo avanza mientras respondes bien y cada error resta 5 segundos.")
                     Text("• Eliges la dificultad del reto (operaciones con números de 1, 2 o 3 dígitos) y cuánto dura: de 1 a 10 minutos.")
+                    Text("• Con «Cambiar solo mañana» eliges otra hora para el día siguiente, aunque ese día normalmente no suene; solo suena a esa hora y los demás días siguen igual.")
                     Text("• Desde 3 horas antes de que suene puedes desactivar esa alarma haciendo el mismo reto desde la app. Solo se salta esa vez; las siguientes suenan como siempre.")
                     Text("• Si durante el reto te quedas 15 s sin acertar (25 s con 3 dígitos), la alarma vuelve a sonar dentro de la app hasta tu siguiente respuesta correcta, a todo volumen en la bocina del iPhone aunque lo hayas bajado.")
                     Text("• Si sales de la app durante el reto, empieza de nuevo; si la cierras, la alarma vuelve a sonar en poco más de un minuto.")
@@ -271,6 +299,23 @@ struct HomeView: View {
         return minutes == 1 ? "1 minuto" : "\(minutes) minutos"
     }
 
+    private var tomorrowDescription: String {
+        if let override = controller.dayOverride {
+            return "El \(override.formatted(.dateTime.weekday(.wide).day())) suena solo a esta hora; los demás días siguen igual."
+        }
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: controller.now) ?? controller.now
+        let day = tomorrow.formatted(.dateTime.weekday(.wide))
+        if let usual = controller.usualTime(onDayAfter: controller.now) {
+            return "Mañana \(day) suena a las \(text(usual)). Cambia la hora solo por ese día."
+        }
+        return "Mañana \(day) no suena. Añade una alarma solo para ese día."
+    }
+
+    private func text(_ time: AlarmTime) -> String {
+        let date = Calendar.current.date(bySettingHour: time.hour, minute: time.minute, second: 0, of: Date()) ?? Date()
+        return date.formatted(date: .omitted, time: .shortened)
+    }
+
     private var noticeIsPresented: Binding<Bool> {
         Binding(
             get: { controller.notice != nil },
@@ -281,6 +326,30 @@ struct HomeView: View {
         Binding(
             get: { controller.state.settings.isEnabled },
             set: { controller.setEnabled($0) })
+    }
+
+    private var locksSettingsBinding: Binding<Bool> {
+        Binding(
+            get: { controller.state.settings.locksSettings },
+            set: { controller.setLocksSettings($0) })
+    }
+
+    private var tomorrowBinding: Binding<Bool> {
+        Binding(
+            get: { controller.dayOverride != nil },
+            set: { on in
+                let settings = controller.state.settings
+                controller.setTomorrowOverride(on ? controller.usualTime(onDayAfter: Date()) ?? settings.defaultTime : nil)
+            })
+    }
+
+    private var dayOverrideTimeBinding: Binding<Date> {
+        Binding(
+            get: { controller.dayOverride ?? Date() },
+            set: { date in
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+                controller.setDayOverrideTime(AlarmTime(hour: parts.hour ?? 7, minute: parts.minute ?? 0))
+            })
     }
 
     private var sameTimeBinding: Binding<Bool> {
@@ -384,11 +453,8 @@ struct WeekdayPicker: View {
     private static let letters = ["D", "L", "M", "M", "J", "V", "S"]
     static let names = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"]
 
-    /// Calendar weekdays starting on the locale's first day of the week.
-    static var orderedDays: [Int] {
-        let first = Calendar.current.firstWeekday
-        return (0..<7).map { (first - 1 + $0) % 7 + 1 }
-    }
+    /// Calendar weekdays from Monday to Sunday.
+    static let orderedDays = [2, 3, 4, 5, 6, 7, 1]
 
     var body: some View {
         HStack(spacing: 6) {
