@@ -32,17 +32,20 @@ enum ChallengeDifficulty: Int, Codable, CaseIterable, Identifiable {
 }
 
 /// How much time the challenge has to accumulate (it only runs while answering well).
+/// The raw value is in seconds.
 enum ChallengeDuration: Int, Codable, CaseIterable, Identifiable {
-    case oneMinute = 1
-    case twoMinutes = 2
-    case threeMinutes = 3
-    case fourMinutes = 4
-    case fiveMinutes = 5
-    case sixMinutes = 6
-    case sevenMinutes = 7
-    case eightMinutes = 8
-    case nineMinutes = 9
-    case tenMinutes = 10
+    case fifteenSeconds = 15
+    case thirtySeconds = 30
+    case oneMinute = 60
+    case twoMinutes = 120
+    case threeMinutes = 180
+    case fourMinutes = 240
+    case fiveMinutes = 300
+    case sixMinutes = 360
+    case sevenMinutes = 420
+    case eightMinutes = 480
+    case nineMinutes = 540
+    case tenMinutes = 600
 
     var id: Int { rawValue }
 
@@ -50,13 +53,16 @@ enum ChallengeDuration: Int, Codable, CaseIterable, Identifiable {
     /// minute, whatever duration the alarm's challenge has.
     static let settingsUnlock = ChallengeDuration.oneMinute
 
-    var seconds: TimeInterval { TimeInterval(rawValue * 60) }
+    var seconds: TimeInterval { TimeInterval(rawValue) }
 
     /// Short label for the picker.
-    var title: String { "\(rawValue) min" }
+    var title: String { rawValue < 60 ? "\(rawValue) s" : "\(rawValue / 60) min" }
 
-    /// For sentences: "1 minuto", "2 minutos".
-    var text: String { rawValue == 1 ? "1 minuto" : "\(rawValue) minutos" }
+    /// For sentences: "15 segundos", "1 minuto", "2 minutos".
+    var text: String {
+        if rawValue < 60 { return "\(rawValue) segundos" }
+        return rawValue == 60 ? "1 minuto" : "\(rawValue / 60) minutos"
+    }
 }
 
 enum ProblemFactory {
