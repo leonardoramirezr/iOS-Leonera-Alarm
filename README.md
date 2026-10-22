@@ -228,7 +228,7 @@ make clean
 4. Generates the sounds (`scripts/generate_sounds.py`, only the first time) and converts them to CAF with `afconvert`.
 5. Packages `Payload/Vigilia.app` into `build/Vigilia.ipa`.
 
-Optional variables: `BUNDLE_ID=com.yourname.vigilia make build`, `VERSION=1.1`, `BUILD_NUMBER=2`.
+Optional variables: `BUNDLE_ID=com.yourname.vigilia make build`, `VERSION=1.1`, `BUILD_NUMBER=2`, `BUILD_NAME=my-test` (the build name shown at the end of the settings, `local` by default).
 
 To open or build it with Xcode: `brew install xcodegen` and `make project`, which generates `Vigilia.xcodeproj` (it isn't saved in the repository).
 

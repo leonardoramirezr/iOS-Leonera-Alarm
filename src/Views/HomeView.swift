@@ -24,6 +24,7 @@ struct HomeView: View {
                     historySection
                 }
                 howItWorksSection
+                buildSection
             }
             .navigationTitle("Vigilia")
             .alert("Vigilia", isPresented: noticeIsPresented) {
@@ -281,6 +282,12 @@ struct HomeView: View {
                 .font(.callout)
                 .padding(.vertical, 4)
             }
+        }
+    }
+
+    private var buildSection: some View {
+        Section {
+            LabeledContent("Build", value: BuildInfo.name)
         }
     }
 
