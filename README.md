@@ -37,16 +37,16 @@ Se compila de dos formas: en **GitHub Actions** (sin Mac), que firma la app Ad H
 - La alerta tiene un único botón extra, **«Resolver reto»**, que abre la app directo en el reto.
 
 ### Los sonidos
-Son 90 y todos se sintetizan desde cero con [`scripts/generate_sounds.py`](scripts/generate_sounds.py), sin grabaciones ni audio de terceros. Cada uno tiene su propio timbre, ritmo y altura.
+Son 90 y todos se sintetizan desde cero con [`scripts/generate_sounds.py`](scripts/generate_sounds.py), sin grabaciones ni audio de terceros. Cada uno tiene su propio timbre, ritmo y altura, y ninguno imita una sirena de emergencia: despertar con algo que suena a emergencia asusta sin necesidad.
 
 | Tipo | Sonidos |
 |---|---|
-| Pitidos y señales | Pitidos clásicos, Pitidos agudos, Reloj digital, Tormenta de pitidos, Morse: DESPIERTA, Teletipo, Sonar, Pulsos que aceleran, Láseres, Alerta espacial, Robot parlanchín, Detector de humo, Marcha atrás, Walkie-talkie, Módem, Contador Geiger |
-| Sirenas, bocinas y silbatos | Sirena lenta, Sirena europea, Sirena aullido, Sirena antiaérea, Alarma de coche, Alarma de inmersión, Claxon, Zumbador, Sirena de niebla, Bocina de tren, Silbato de árbitro |
+| Pitidos y señales | Pitidos clásicos, Pitidos agudos, Reloj digital, Tormenta de pitidos, Morse: DESPIERTA, Teletipo, Sonar, Pulsos que aceleran, Láseres, Robot parlanchín, Detector de humo, Marcha atrás, Walkie-talkie, Módem, Contador Geiger |
+| Bocinas y silbatos | Alarma de inmersión, Claxon, Zumbador, Sirena de niebla, Bocina de tren, Silbato de árbitro |
 | Campanas, timbres y relojes | Campanas de cristal, Campanario, Despertador de campana, Teléfono antiguo, Caja de música, Paso a nivel, Timbre de la puerta, Reloj cucú |
-| Instrumentos | Fanfarria, Toque de diana, Trompeta con sordina, Marimba nerviosa, Tambor metálico, Handpan, Vibráfono, Órgano, Organillero, Piano, Arpegio menor, Escalera infinita, Guitarra rasgueada, Guitarra eléctrica, Arpa, Koto, Violín, Gaita, Kazoo, Theremin, Didyeridú, Coro |
-| Estilos y ritmos | Videojuego de 8 bits, Cumbia, Mariachi, Trance, Bajo ácido, Dembow, Batucada, Taiko, Cencerro, Palmas flamencas, Redoble militar, Caracol y teponaztli, Tambores y gong, Scratch de DJ |
-| Máquinas y calle | Locomotora de vapor, Carrito de camotes, Afilador, Helicóptero, Carrera de autos, Tragamonedas |
+| Instrumentos | Fanfarria, Toque de diana, Trompeta con sordina, Marimba nerviosa, Tambor metálico, Handpan, Vibráfono, Órgano, Organillero, Piano, Arpegio menor, Escalera infinita, Guitarra rasgueada, Guitarra eléctrica, Banjo, Arpa, Koto, Kalimba, Violín, Gaita, Kazoo, Theremin, Didyeridú, Coro, Silbido alegre |
+| Estilos y ritmos | Videojuego de 8 bits, Cumbia, Mariachi, Trance, Bajo ácido, Dembow, Batucada, Taiko, Cencerro, Palmas flamencas, Redoble militar, Caracol y teponaztli, Tambores y gong, Gamelán, Polka norteña, Scratch de DJ |
+| Máquinas y calle | Locomotora de vapor, Carrito de camotes, Afilador, Helicóptero, Carrera de autos, Tragamonedas, Máquina de escribir |
 | Animales y efectos | Pájaros eléctricos, Grillos, Gallo, Pájaro carpintero, Coro de ranas, Gato con hambre, Mosquito, Gotas en la cueva, Patito de hule, Resortes, Pelota que rebota, Subida sin fin, Fallo del sistema |
 
 Para escucharlos sin compilar la app: `make sounds` los genera como WAV en `build/sounds/` (solo necesita Python 3).

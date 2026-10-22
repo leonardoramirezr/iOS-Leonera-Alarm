@@ -203,6 +203,7 @@ SCALES = {
     "blues": [0, 3, 5, 6, 7, 10],
     "hirajoshi": [0, 2, 3, 7, 8],
     "insen": [0, 1, 5, 7, 10],
+    "pelog": [0, 1, 3, 7, 8],
 }
 
 
@@ -230,32 +231,6 @@ def p_beeps(r, mix, wave_kind="square", pitch=(1800, 3000), group=(2, 5)):
             mix.add(t, tone)
             t += beep + gap
         t += pause
-
-
-def p_siren(r, mix, wave_kind="saw", fast=False):
-    low = r.uniform(500, 750)
-    high = low * r.uniform(1.8, 2.6)
-    period = r.uniform(0.18, 0.32) if fast else r.uniform(1.6, 2.6)
-    t = 0.0
-    while t < DURATION:
-        up = note(wave_kind, low, high, dur=period * 0.55, attack=0.01, release=0.005)
-        down = note(wave_kind, high, low, dur=period * 0.45, attack=0.005, release=0.01)
-        mix.add(t, up, 0.8)
-        mix.add(t + period * 0.55, down, 0.8)
-        t += period
-
-
-def p_hilo(r, mix, wave_kind="square"):
-    a = r.uniform(420, 620)
-    b = a * r.choice([1.26, 1.335, 1.5])
-    length = r.uniform(0.35, 0.65)
-    ta = note(wave_kind, a, dur=length, attack=0.01, release=0.01)
-    tb = note(wave_kind, b, dur=length, attack=0.01, release=0.01)
-    t = 0.0
-    while t < DURATION:
-        mix.add(t, tb, 0.8)
-        mix.add(t + length, ta, 0.8)
-        t += 2 * length
 
 
 def p_trill(r, mix, kind="square", hammer=False):
@@ -541,19 +516,6 @@ def p_bells(r, mix):
         t += 0.5
 
 
-def p_space_alert(r, mix):
-    low = r.uniform(600, 800)
-    t = 0.0
-    while t < DURATION:
-        mix.add(t, note("triangle", low, low * 2.2, dur=0.6, attack=0.01, release=0.02), 0.8)
-        t += 0.65
-        beep = note("square", low * 2.2, dur=0.08, attack=0.002, release=0.01)
-        for _ in range(3):
-            mix.add(t, beep, 0.5)
-            t += 0.13
-        t += 0.2
-
-
 def p_teletype(r, mix):
     t = 0.0
     while t < DURATION:
@@ -578,8 +540,8 @@ def p_beep_storm(r, mix):
 
 
 # --- More building blocks -----------------------------------------------------
-# Used by the second batch of sounds (31 onwards): pitch contours, struck and
-# plucked tones, filters and filtered noise. The first 30 sounds don't use them.
+# Used by the second batch of sounds (31 onwards) and by the ones that replaced the
+# sirens: pitch contours, struck and plucked tones, filters and filtered noise.
 
 
 def ramp(points, n):
@@ -879,7 +841,7 @@ def follow(steps, slide=0.06):
     return at
 
 
-# --- Signals, sirens and horns --------------------------------------------------
+# --- Signals and horns ----------------------------------------------------------
 
 
 def p_smoke_alarm(r, mix):
@@ -909,22 +871,6 @@ def p_reversing(r, mix):
         t += 1.0
 
 
-def p_air_raid(r, mix):
-    # Two rotors a third apart, spinning up slowly, holding and winding down.
-    top = r.uniform(520, 620)
-    second = r.choice([1.19, 1.26])
-    cycle = [(1.3, 0.62), (2.8, 0.9), (4.6, 1.0), (7.2, 0.985), (8.6, 0.74), (10.2, 0.42), (11.4, 0.3)]
-    points = [(0.0, 0.25)]
-    start = 0.0
-    while start < DURATION:
-        points += [(start + dt, level) for dt, level in cycle]
-        start += 11.4
-    track = layer(
-        (glide("square", [(t, top * k) for t, k in points], vib_rate=0.7, vib_depth=0.004, attack=0.4), 0.6),
-        (glide("square", [(t, top * second * k) for t, k in points], vib_rate=0.6, vib_depth=0.004, attack=0.4), 0.45))
-    mix.add(0.0, svf(track, 3000, 0.7))
-
-
 def p_dive_klaxon(r, mix):
     # "A-oo-ga": the motor spins up, so the pitch climbs, then sags.
     f = r.uniform(130, 165)
@@ -938,57 +884,6 @@ def p_dive_klaxon(r, mix):
         mix.add(t, honk, 0.7)
         mix.add(t + 1.1 + gap, honk, 0.7)
         t += 2 * (1.1 + gap) + r.uniform(0.4, 0.7)
-
-
-def p_car_alarm(r, mix):
-    # Cycles through the classic modes, a few seconds each.
-    k = r.uniform(0.9, 1.15)
-    track = Mix()
-
-    def whoop(t, end):
-        tone = note("square", 650 * k, 2000 * k, dur=0.38, attack=0.005, release=0.01)
-        while t < end:
-            track.add(t, tone, 0.5)
-            t += 0.42
-
-    def hilo(t, end):
-        hi = note("square", 1050 * k, dur=0.14, attack=0.003, release=0.006)
-        lo = note("square", 780 * k, dur=0.14, attack=0.003, release=0.006)
-        while t < end:
-            track.add(t, hi, 0.5)
-            track.add(t + 0.14, lo, 0.5)
-            t += 0.28
-
-    def chirp(t, end):
-        beep = note("square", 1650 * k, dur=0.05, attack=0.002, release=0.006)
-        while t < end:
-            track.add(t, beep, 0.5)
-            t += 0.1
-
-    def warble(t, end):
-        track.add(t, note("square", 1100 * k, dur=end - t, attack=0.005, release=0.02, vib_rate=7.0, vib_depth=0.22), 0.5)
-
-    def wail(t, end):
-        up = note("square", 900 * k, 1750 * k, dur=0.7, attack=0.005, release=0.005)
-        down = note("square", 1750 * k, 900 * k, dur=0.7, attack=0.005, release=0.01)
-        while t + 1.4 <= end + 0.3:
-            track.add(t, up, 0.5)
-            track.add(t + 0.7, down, 0.5)
-            t += 1.4
-
-    def pulse(t, end):
-        tone = note("square", 1350 * k, 1250 * k, dur=0.22, attack=0.003, release=0.01)
-        while t < end:
-            track.add(t, tone, 0.5)
-            t += 0.3
-
-    modes = [whoop, hilo, chirp, warble, wail, pulse]
-    r.shuffle(modes)
-    t = 0.0
-    for i in range(8):
-        modes[i % len(modes)](t, min(DURATION, t + 3.4))
-        t += 3.5
-    mix.add(0.0, svf(track.buffer, 3500, 0.7))
 
 
 def p_foghorn(r, mix):
@@ -2857,11 +2752,297 @@ def p_glitch(r, mix):
         bar += 1
 
 
+# --- In place of the sirens -----------------------------------------------------
+# The pool used to have emergency sirens (wail, yelp, hi-lo, whoop, air raid and a car
+# alarm). Waking up to what sounds like an emergency is needlessly scary, so these took
+# their places in SOUNDS: every other sound keeps its file name and seed.
+
+
+def p_kalimba(r, mix):
+    # Thumb piano: the left thumb keeps a low pattern on the beat and the right one answers higher up,
+    # in a loop that changes a little every time around.
+    root = r.randint(65, 70)
+    step = r.uniform(0.13, 0.16)
+    progression = r.choice([[0, 4, 5, 3], [0, 3, 4, 0], [0, 5, 3, 4]])
+    low = r.choice([[0, 4, 2, 4], [0, 2, 4, 2], [0, 4, 7, 4]])
+    # The right thumb's notes, relative to each bar's chord: chord tones an octave up and a few passing notes.
+    tune = [r.choice([7, 9, 11, 9, 12, 14]) for _ in range(16)]
+    click = burst(0.012, 4500, 1.0, 0.002, seed=240)
+
+    def tine(degree):
+        # A metal tongue clamped at one end: its overtones are far from harmonic and die at once.
+        return strike(scale_note(root, "major", degree), ((1.0, 1.0, 0.45), (6.27, 0.3, 0.035), (17.55, 0.08, 0.01)), 1.6)
+
+    t = 0.0
+    bar = 0
+    while t < DURATION:
+        chord = progression[bar % 4]
+        if bar % 4 == 0 and bar:
+            for k in r.sample(range(16), 3):
+                tune[k] = r.choice([7, 8, 9, 11, 12, 14])
+        for k in range(4):
+            start = t + 2 * k * step + r.uniform(-0.006, 0.006)
+            mix.add(start, tine(chord + low[k]), 0.7 if k == 0 else 0.55)
+            mix.add(start, click, 0.05)
+            mix.add(start + step, tine(chord + tune[(bar % 4) * 4 + k]), 0.5)
+        t += 8 * step
+        bar += 1
+
+
+def p_gamelan(r, mix):
+    # Balinese gamelan: two metallophones interlock into one very fast line over the slow core melody,
+    # the kempli keeping the beat and a gong at the top of every cycle. It speeds up as it goes, and
+    # now and then the whole ensemble stops dead on a syncopated break.
+    root = r.randint(70, 74)
+    core = [r.randint(0, 4)]
+    for _ in range(7):
+        core.append(max(-1, min(5, core[-1] + r.choice([-2, -1, 1, 1, 2]))))
+    # Each figure is four notes around the next core note, landing on it with the beat.
+    shapes = [[1, -1, 1, 0], [-1, 1, -1, 0], [2, 1, -1, 0], [1, 2, 1, 0], [-1, 0, 1, 0], [0, -1, 1, 0]]
+    figures = [r.choice(shapes) for _ in range(8)]
+    mallet = burst(0.01, 5000, 1.0, 0.002, seed=241)
+    kempli = layer((strike(midi(root - 3), ((1.0, 1.0, 0.03), (2.3, 0.5, 0.015)), 0.12), 1.0),
+                   (burst(0.02, 2500, 1.0, 0.004, seed=242), 0.3))
+    gong = strike(midi(root - 24),
+                  ((1.0, 1.0, 1.2), (1.012, 0.8, 1.2), (2.0, 0.5, 0.8), (2.92, 0.4, 0.6), (4.1, 0.25, 0.3)), 3.0)
+
+    def key(degree, octave, decay, dur):
+        f = midi(root + 12 * octave + scale_step("pelog", degree))
+        partials = ((1.0, 1.0, decay), (2.71, 0.35, decay * 0.3), (5.2, 0.12, decay * 0.1))
+        # Every instrument has a twin tuned a few hertz higher: the beating between the two is the shimmer.
+        return layer((strike(f, partials, dur), 0.5), (strike(f + 7.0, partials, dur), 0.5))
+
+    step = 60.0 / r.uniform(132, 144) / 4
+    t = 0.0
+    cycle = 0
+    while t < DURATION:
+        mix.add(t, gong, 0.8)
+        for beat in range(8):
+            start = t + beat * 4 * step
+            if cycle % 3 == 2 and beat >= 6:
+                if beat == 6:
+                    for s in (0, 3, 6):
+                        mix.add(start + s * step, key(core[0], 0, 0.3, 0.45), 0.6)
+                        mix.add(start + s * step, key(core[0], 1, 0.3, 0.45), 0.4)
+                        mix.add(start + s * step, mallet, 0.1)
+                continue
+            mix.add(start, key(core[beat], -1, 0.8, 1.4), 0.5)
+            mix.add(start, kempli, 0.3)
+            target = core[(beat + 1) % 8]
+            for k, offset in enumerate(figures[beat]):
+                mix.add(start + (k + 1) * step, key(target + offset, 0, 0.3, 0.45), 0.45)
+                mix.add(start + (k + 1) * step, mallet, 0.06)
+        t += 32 * step
+        cycle += 1
+        step = max(0.075, step * 0.95)
+        if cycle % 2 == 0:
+            for k in r.sample(range(8), 2):
+                figures[k] = r.choice(shapes)
+    trim_bass(mix)
+
+
+BANJO_CHORDS = {  # first to fifth string in open G tuning; the short fifth string is the high drone
+    "G": (62, 59, 55, 50, 67),
+    "C": (64, 60, 55, 52, 67),
+    "D": (66, 62, 57, 54, 67),
+    "Em": (64, 59, 55, 52, 67),
+}
+BANJO_ROLLS = [[3, 2, 1, 5, 2, 1, 5, 1], [3, 2, 5, 1, 4, 2, 5, 1], [3, 2, 1, 5, 1, 2, 3, 1], [1, 2, 3, 1, 2, 3, 5, 1]]
+
+
+def p_banjo(r, mix):
+    # Bluegrass banjo: three-finger rolls over the chords with the high fifth string ringing through
+    # them, hammer-ons now and then, and a mandolin chopping the offbeats.
+    capo = r.choice([0, 2, 4, 5])
+    eighth = r.uniform(0.09, 0.105)
+    progression = r.choice([["G", "G", "C", "G", "D", "D", "G", "G"], ["G", "C", "G", "D"], ["G", "Em", "C", "D"]])
+    chop = burst(0.06, 1800, 0.9, 0.012, seed=243)
+    strings = {}
+
+    def string(m, seed):
+        if (m, seed) not in strings:
+            tone = pluck(midi(m + capo), 0.9, t60=0.8, bright=0.9, seed=seed)
+            # The drum head gives the banjo its nasal twang.
+            strings[m, seed] = layer((tone, 1.0), (svf(tone, 1700, 1.4, "band"), 1.4))
+        return strings[m, seed]
+
+    roll = r.choice(BANJO_ROLLS)
+    t = 0.0
+    bar = 0
+    while t < DURATION:
+        name = progression[bar % len(progression)]
+        chord = BANJO_CHORDS[name]
+        if bar % 2 == 0 and r.random() < 0.4:
+            roll = r.choice(BANJO_ROLLS)
+        hammer = name == "G" and r.random() < 0.5
+        for k, s in enumerate(roll):
+            if k == 0 and hammer:
+                # Picks the open third string and frets it two semitones higher without picking again.
+                tone = bend(string(chord[2], 3), [(0.0, 1.0), (eighth * 0.5, 1.0), (eighth * 0.5 + 0.005, 2 ** (2 / 12.0))])
+            else:
+                tone = string(chord[s - 1], s)
+            # The thumb takes the third to fifth strings and picks a little harder.
+            mix.add(t + k * eighth, tone, 0.6 if s >= 3 else 0.45)
+        for k in (2, 6):
+            mix.add(t + k * eighth, chop, 0.3)
+            for m in chord[:3]:
+                mix.add(t + k * eighth, pluck(midi(m + capo + 12), 0.1, t60=0.08, bright=0.8, seed=m), 0.15)
+        t += 8 * eighth
+        bar += 1
+
+
+def p_typewriter(r, mix):
+    # A mechanical typewriter: bursts of keystrokes and the space bar, the bell a few letters before
+    # the end of the line, then the carriage return.
+    keys = [layer((burst(0.05, center, 1.2, 0.008, seed=250 + k), 1.0), (burst(0.08, 600, 1.5, 0.02, seed=255 + k), 0.7))
+            for k, center in enumerate((2600, 3000, 3400, 3900))]
+    escapement = burst(0.01, 5000, 2.0, 0.002, seed=260)
+    space = layer((burst(0.08, 400, 1.2, 0.02, seed=261), 1.0), (burst(0.02, 2000, 1.0, 0.004, seed=262), 0.4))
+    bell = strike(r.uniform(1700, 2100), ((1.0, 1.0, 0.5), (2.32, 0.4, 0.25), (4.25, 0.2, 0.12)), 1.6)
+    ratchet = burst(0.012, 3500, 2.0, 0.003, seed=263)
+    slam = layer((burst(0.15, 500, 0.8, 0.04, seed=264), 1.0), (burst(0.05, 2500, 1.0, 0.01, seed=265), 0.5))
+    t = 0.3
+    while t < DURATION:
+        width = r.randint(30, 42)
+        column = 0
+        while column < width:
+            for _ in range(min(r.randint(2, 9), width - column)):
+                mix.add(t, r.choice(keys), r.uniform(0.6, 0.9))
+                mix.add(t + 0.025, escapement, 0.15)
+                column += 1
+                if column == width - 6:
+                    mix.add(t + 0.05, bell, 0.6)
+                t += r.uniform(0.07, 0.15)
+            mix.add(t, space, 0.5)
+            column += 1
+            if column == width - 6:
+                mix.add(t + 0.05, bell, 0.6)
+            t += r.uniform(0.1, 0.18) + (r.uniform(0.3, 0.7) if r.random() < 0.15 else 0.0)
+        # The return lever turns the platen to the next line (a ratchet) and throws the carriage back.
+        for k in range(10):
+            mix.add(t + k * 0.025, ratchet, 0.4 - 0.025 * k)
+        mix.add(t + 0.4, slam, 0.8)
+        t += r.uniform(0.9, 1.3)
+    trim_bass(mix)
+
+
+WHISTLE_RHYTHMS = [[1, 0.5, 0.5, 1, 1], [0.75, 0.25, 1, 0.75, 0.25, 1], [0.5, 0.5, 0.5, 0.5, 2],
+                   [1.5, 0.5, 1, 1], [0.5, 0.5, 1, 0.5, 0.5, 1], [2, 1, 1]]
+
+
+def p_whistling(r, mix):
+    # Someone whistling a cheerful tune and snapping their fingers: pure tones that scoop a little into
+    # each note, breath, a light vibrato and a trill on some long notes.
+    root = r.randint(72, 77)
+    beat = 60.0 / r.uniform(104, 120)
+    snap = burst(0.03, 2200, 1.5, 0.008, seed=270)
+
+    def phrase(chords):
+        notes = []
+        degree = 4
+        for b, chord in enumerate(chords):
+            pos = 0.0
+            # The last bar always ends on a long note, so every phrase comes to rest.
+            for length in (r.choice([[1, 1, 2], [2, 2], [1, 0.5, 0.5, 2]]) if b == 3 else r.choice(WHISTLE_RHYTHMS)):
+                degree += r.choice([-2, -1, -1, 1, 1, 2, 3])
+                if pos == 0 or length >= 1.5:
+                    degree = min((chord + d for d in (0, 2, 4, 7)), key=lambda d: abs(d - degree))
+                degree = max(0, min(11, degree))
+                notes.append((b * 4 + pos, length, degree))
+                pos += length
+        return notes
+
+    def whistled(notes):
+        points, amp, cutoff = [], [], []
+        for k, (start, length, degree) in enumerate(notes):
+            s, e = start * beat, (start + length) * beat
+            f = scale_note(root, "major", degree)
+            points += [(s, points[-1][1] if points else f * 0.94), (s + 0.035, f)]
+            cutoff.append((s, f))
+            if length >= 1.5 and r.random() < 0.3:
+                upper = scale_note(root, "major", degree + 1)
+                x = s + 0.1
+                while x < s + length * beat * 0.5:
+                    points += [(x, f), (x + 0.008, upper), (x + 0.045, upper), (x + 0.053, f)]
+                    x += 0.09
+            # The last note stops early to take a breath before the next phrase.
+            if k == len(notes) - 1:
+                e -= 0.25
+            amp += [(s, 0.5), (s + 0.03, 1.0), (e - 0.05, 0.85)]
+        points.append((e, points[-1][1]))
+        amp.append((e, 0.0))
+        tone = glide("sine", points, amp=amp, vib_rate=5.5, vib_depth=0.008)
+        overtone = glide("sine", [(time, 2 * hz) for time, hz in points], amp=amp, vib_rate=5.5, vib_depth=0.008)
+        breath = svf(noise(e, 271), follow(cutoff, 0.035), 5.0, "band")
+        peak = max(abs(v) for v in breath) or 1.0
+        return layer((tone, 1.0), (overtone, 0.06), (envelope([v / peak for v in breath], amp), 0.12))
+
+    a = whistled(phrase(r.choice([[0, 3, 4, 0], [0, 5, 3, 4], [0, 4, 5, 0]])))
+    song = [a, a, whistled(phrase(r.choice([[3, 0, 4, 4], [5, 3, 4, 4], [3, 4, 0, 4]]))), a]
+    t = 0.0
+    for part in song:
+        mix.add(t, part, 0.8)
+        t += 16 * beat
+    t = beat
+    while t < DURATION:
+        mix.add(t + r.uniform(-0.01, 0.01), snap, 0.35)
+        t += 2 * beat
+
+
+def p_norteno(r, mix):
+    # Norteño polka: an accordion in thirds, its two reeds a little apart for the wet tremolo, over the
+    # bajo sexto's bass note and chord ("oom-pah") and a snare on the backbeat.
+    key = r.randint(60, 65)
+    beat = 60.0 / r.uniform(118, 132)
+    progression = [0, 0, 4, 4, 4, 4, 0, 0, 0, 0, 3, 3, 4, 4, 0, 0]
+    rhythms = [[2, 2, 2, 2], [1, 1, 2, 2, 2], [2, 1, 1, 2, 2], [3, 1, 2, 2], [1, 1, 1, 1, 2, 2], [4, 2, 2], [2, 2, 4]]
+    strum = burst(0.05, 1500, 0.8, 0.012, seed=280)
+    boom = kick()
+    hit = snare(seed=281)
+    accordion = Mix()
+
+    def reed(degree, dur):
+        f = scale_note(key, "major", degree)
+        return layer((note("reed", f, dur=dur, attack=0.015, release=0.03), 0.5),
+                     (note("reed", f * 1.007, dur=dur, attack=0.015, release=0.03), 0.5))
+
+    t = 0.0
+    bar = 0
+    degree = 7
+    while t < DURATION:
+        chord = progression[bar % 16]
+        bass = key - 12 + scale_step("major", chord + (0 if bar % 2 == 0 else 4))
+        mix.add(t, pluck(midi(bass), beat, t60=0.6, bright=0.7, seed=bass), 0.5)
+        mix.add(t, boom, 0.4)
+        for s, d in enumerate((chord + 2, chord + 4, chord + 7)):
+            m = key + scale_step("major", d)
+            mix.add(t + beat + s * 0.006, pluck(midi(m), beat * 0.45, t60=0.3, bright=0.7, seed=m), 0.25)
+        mix.add(t + beat, strum, 0.2)
+        mix.add(t + beat, hit, 0.3)
+        pos = 0
+        for length in r.choice(rhythms):
+            degree += r.choice([-2, -1, -1, 1, 1, 2])
+            if pos % 4 == 0:
+                degree = min((chord + d for d in (0, 2, 4, 7)), key=lambda d: abs(d - degree))
+            degree = max(4, min(12, degree))
+            dur = length * beat / 4 * 0.9
+            accordion.add(t + pos * beat / 4, reed(degree, dur), 0.4)
+            accordion.add(t + pos * beat / 4, reed(degree - 2, dur), 0.3)
+            pos += length
+        t += 2 * beat
+        bar += 1
+    # The bellows push a little harder on every beat.
+    mix.add(0.0, [v * (0.85 + 0.15 * math.cos(math.pi * i / (SR * beat)) ** 2) for i, v in
+                  enumerate(svf(accordion.buffer, 4000, 0.7))])
+    trim_bass(mix)
+
+
 # A sound's file name and random seed come from its position in this list: add new
-# sounds at the end so that the existing ones stay exactly the same.
+# sounds at the end so that the existing ones stay exactly the same, and to drop one,
+# put another sound in its place.
 SOUNDS = [
     ("Pitidos clásicos", lambda r, m: p_beeps(r, m, "square", (1900, 2300), (4, 4))),
-    ("Sirena lenta", lambda r, m: p_siren(r, m, "saw")),
+    ("Kalimba", p_kalimba),
     ("Campanas de cristal", lambda r, m: p_arpeggio(r, m, "fm", "major")),
     ("Teléfono antiguo", lambda r, m: p_trill(r, m, "square")),
     ("Reloj digital", p_digital),
@@ -2872,29 +3053,29 @@ SOUNDS = [
     ("Marimba nerviosa", lambda r, m: p_melody(r, m, "marimba", "pentatonic", True)),
     ("Sonar", p_sonar),
     ("Pulsos que aceleran", p_accelerating),
-    ("Sirena europea", lambda r, m: p_hilo(r, m, "square")),
+    ("Gamelán", p_gamelan),
     ("Láseres", p_laser),
     ("Tambores y gong", p_drums),
     ("Grillos", p_cricket),
     ("Órgano", p_organ),
     ("Pelota que rebota", p_bounce),
     ("Escalera infinita", p_scale_runs),
-    ("Sirena aullido", lambda r, m: p_siren(r, m, "square", fast=True)),
+    ("Banjo", p_banjo),
     ("Caja de música", lambda r, m: p_melody(r, m, "musicbox", "major", False)),
     ("Pitidos agudos", lambda r, m: p_beeps(r, m, "sine", (2800, 3600), (3, 3))),
     ("Arpegio menor", lambda r, m: p_arpeggio(r, m, "pluck", "minor")),
     ("Zumbador", lambda r, m: p_klaxon(r, m, low=True)),
     ("Robot parlanchín", p_robot),
     ("Campanario", p_bells),
-    ("Alerta espacial", p_space_alert),
+    ("Máquina de escribir", p_typewriter),
     ("Teletipo", p_teletype),
     ("Despertador de campana", lambda r, m: p_trill(r, m, hammer=True)),
     ("Tormenta de pitidos", p_beep_storm),
     ("Detector de humo", p_smoke_alarm),
     ("Marcha atrás", p_reversing),
-    ("Sirena antiaérea", p_air_raid),
+    ("Silbido alegre", p_whistling),
     ("Alarma de inmersión", p_dive_klaxon),
-    ("Alarma de coche", p_car_alarm),
+    ("Polka norteña", p_norteno),
     ("Sirena de niebla", p_foghorn),
     ("Paso a nivel", p_crossing_bell),
     ("Bocina de tren", p_train_horn),
