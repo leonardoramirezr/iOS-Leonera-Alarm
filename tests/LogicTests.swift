@@ -201,12 +201,15 @@ struct LogicTests {
                 count += 1
             }
             // The first answer only starts the clock; then each one adds 5 s.
-            expect(long.isComplete && count == duration.rawValue * 12,
-                   "\(duration.title) answering every 5 s takes \(duration.rawValue * 12) answers (took \(count))")
-            expect(levels.min() == 1 && levels.max()! >= 2, "\(duration.title) operations still get harder along the way")
+            expect(long.isComplete && count == Int(duration.seconds) / 5,
+                   "\(duration.title) answering every 5 s takes \(Int(duration.seconds) / 5) answers (took \(count))")
+            // A 15 s challenge only has three answers, too few to reach the harder operations.
+            expect(levels.min() == 1 && (duration.seconds < 30 || levels.max()! >= 2),
+                   "\(duration.title) operations still get harder along the way")
         }
-        expect(ChallengeDuration.allCases.map(\.rawValue) == Array(1...10), "from 1 to 10 minutes")
-        expect(ChallengeDuration.oneMinute.text == "1 minuto" && ChallengeDuration.threeMinutes.text == "3 minutos", "duration texts")
+        expect(ChallengeDuration.allCases.map(\.rawValue) == [15, 30] + (1...10).map { $0 * 60 }, "from 15 seconds to 10 minutes")
+        expect(ChallengeDuration.fifteenSeconds.text == "15 segundos" && ChallengeDuration.oneMinute.text == "1 minuto"
+               && ChallengeDuration.threeMinutes.text == "3 minutos", "duration texts")
         expect(ChallengeDuration.settingsUnlock.seconds == 60, "unlocking the settings always takes 1 minute")
     }
 
@@ -519,6 +522,9 @@ struct LogicTests {
         let decodedDuration = try? JSONDecoder().decode(VigiliaState.self, from: unknownDuration)
         expect(decodedDuration?.settings.isEnabled == true && decodedDuration?.settings.challengeDuration == .oneMinute,
                "an unknown duration does not lose the alarm")
+        let savedInMinutes = Data(#"{"settings":{"isEnabled":true,"hour":6,"minute":30,"weekdays":[2],"challengeDuration":3}}"#.utf8)
+        expect((try? JSONDecoder().decode(VigiliaState.self, from: savedInMinutes))?.settings.challengeDuration == .threeMinutes,
+               "a duration saved in minutes keeps its length")
         var longer = state
         longer.settings.challengeDuration = .threeMinutes
         expect(try! JSONDecoder().decode(VigiliaState.self, from: JSONEncoder().encode(longer)) == longer, "the duration is saved")

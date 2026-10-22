@@ -60,7 +60,12 @@ extension AlarmSettings: Codable {
         dayOverride = try container.decodeIfPresent(Date.self, forKey: .dayOverride)
         // An unknown level (saved by a newer version) must not lose the alarm.
         difficulty = (try? container.decodeIfPresent(ChallengeDifficulty.self, forKey: .difficulty)) ?? difficulty
-        challengeDuration = (try? container.decodeIfPresent(ChallengeDuration.self, forKey: .challengeDuration)) ?? challengeDuration
+        // Durations used to be saved in minutes (1 to 10). Those values never collide with
+        // the seconds saved now, so they are converted; an unknown value keeps the default.
+        if let saved = try? container.decodeIfPresent(Int.self, forKey: .challengeDuration),
+           let duration = ChallengeDuration(rawValue: (1...10).contains(saved) ? saved * 60 : saved) {
+            challengeDuration = duration
+        }
     }
 }
 
