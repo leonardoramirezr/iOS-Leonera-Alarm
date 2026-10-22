@@ -404,7 +404,7 @@ struct LogicTests {
         let saturdayNight = date("2026-10-10T22:00:00")
         let sundayAlarm = date("2026-10-11T09:30:00")
         expect(sunday.changeSettings(at: saturdayNight, isAlerting: false, calendar: calendar) { $0.dayOverride = sundayAlarm },
-               "tomorrow's time can be set")
+               "the next alarm's time can be set")
         expect(sunday.nextOccurrence(after: saturdayNight, calendar: calendar) == sundayAlarm, "Sunday rings this once")
         expect(sunday.mainAlarmPlans(after: saturdayNight, calendar: calendar)[2]
                == MainAlarmPlan(weekday: 2, time: AlarmTime(hour: 8, minute: 0), fireDate: monday),
@@ -473,9 +473,9 @@ struct LogicTests {
         state.settings.dayOverride = date("2026-10-12T09:00:00")
         state.dayOverrideAlarm = DayOverrideRecord(id: UUID(), occurrence: date("2026-10-12T09:00:00"))
         let changed = try! JSONEncoder().encode(state)
-        expect(try! JSONDecoder().decode(VigiliaState.self, from: changed) == state, "the lock and tomorrow's time survive a round trip")
+        expect(try! JSONDecoder().decode(VigiliaState.self, from: changed) == state, "the lock and the next alarm's time survive a round trip")
         expect(decoded?.settings.locksSettings == true && decoded?.settings.dayOverride == nil,
-               "previous settings keep locking and have no change for tomorrow")
+               "previous settings keep locking and have no change for the next alarm")
     }
 
     static func testSessions() {
