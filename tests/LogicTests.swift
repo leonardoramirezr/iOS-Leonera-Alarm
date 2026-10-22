@@ -547,6 +547,15 @@ struct LogicTests {
         expect(state.history.filter(\.isTest).count == AlarmRules.testHistoryLimit, "keeps only the latest tests")
         expect(wakes.first?.occurrence == start.addingTimeInterval(Double(AlarmRules.historyLimit + 4) * 86_400), "newest first")
         expect(zip(state.history, state.history.dropFirst()).allSatisfy { $0.completedAt >= $1.completedAt }, "history stays in order")
+
+        var withSound = state
+        withSound.recordWake(WakeRecord(occurrence: start, completedAt: start.addingTimeInterval(60),
+                                        solved: 10, mistakes: 0, isTest: false, sound: "Campanas"))
+        let saved = try! JSONDecoder().decode(VigiliaState.self, from: JSONEncoder().encode(withSound))
+        expect(saved.history.first?.sound == "Campanas", "the sound that rang is saved")
+        let legacy = #"{"occurrence":0,"completedAt":60,"solved":3,"mistakes":1,"isTest":false}"#
+        let old = try? JSONDecoder().decode(WakeRecord.self, from: Data(legacy.utf8))
+        expect(old != nil && old?.sound == nil, "records saved without a sound still load")
     }
 
     static func testStatistics() {

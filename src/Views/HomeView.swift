@@ -254,6 +254,11 @@ struct HomeView: View {
                     Text("Apagada \(minutesLate(record)) después · \(record.solved) aciertos, \(record.mistakes) errores")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                    if let sound = record.sound {
+                        Label(sound, systemImage: "music.note")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
