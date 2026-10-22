@@ -39,17 +39,17 @@ It can be built in two ways: on **GitHub Actions** (no Mac needed), which signs 
 - The alert has a single extra button, **«Resolver reto»** ("Solve challenge"), which opens the app directly in the challenge.
 
 ### The sounds
-There are 90 and all of them are synthesized from scratch with [`scripts/generate_sounds.py`](scripts/generate_sounds.py), with no recordings or third-party audio. Each one has its own timbre, rhythm, and pitch, and none of them imitates an emergency siren: waking up to something that sounds like an emergency is needlessly scary.
+There are 90 and all of them are synthesized from scratch with [`scripts/generate_sounds.py`](scripts/generate_sounds.py), with no recordings or third-party audio. Each one has its own timbre, rhythm, and pitch, and none of them imitates an emergency siren or alarm: waking up to something that sounds like an emergency is needlessly scary.
 
 | Type | Sounds |
 |---|---|
-| Beeps and signals | Classic beeps, High beeps, Digital clock, Beep storm, Morse: WAKE UP, Teletype, Sonar, Accelerating pulses, Lasers, Chatty robot, Smoke detector, Reversing beeper, Walkie-talkie, Modem, Geiger counter |
-| Horns and whistles | Dive alarm, Car horn, Buzzer, Foghorn, Train horn, Referee whistle |
+| Beeps and signals | Classic beeps, High beeps, Digital clock, Beep storm, Morse: WAKE UP, Teletype, Sonar, Accelerating pulses, Lasers, Chatty robot, Reversing beeper, Walkie-talkie, Modem, Geiger counter |
+| Horns and whistles | Foghorn, Train horn, Referee whistle |
 | Bells, chimes, and clocks | Glass bells, Bell tower, Bell alarm clock, Old telephone, Music box, Railroad crossing, Doorbell, Cuckoo clock |
-| Instruments | Fanfare, Reveille, Muted trumpet, Nervous marimba, Steel drum, Handpan, Vibraphone, Organ, Barrel organ, Piano, Minor arpeggio, Endless staircase, Strummed guitar, Electric guitar, Banjo, Harp, Koto, Kalimba, Violin, Bagpipes, Kazoo, Theremin, Didgeridoo, Choir, Cheerful whistling |
-| Styles and rhythms | 8-bit video game, Cumbia, Mariachi, Trance, Acid bass, Dembow, Batucada, Taiko, Cowbell, Flamenco clapping, Military drum roll, Conch and teponaztli, Drums and gong, Gamelan, Norteño polka, DJ scratch |
+| Instruments | Fanfare, Reveille, Muted trumpet, Nervous marimba, Steel drum, Handpan, Vibraphone, Organ, Barrel organ, Piano, Harpsichord, Minor arpeggio, Endless staircase, Strummed guitar, Electric guitar, Banjo, Harp, Koto, Kalimba, Violin, Bagpipes, Kazoo, Theremin, Didgeridoo, Choir, Cheerful whistling |
+| Styles and rhythms | 8-bit video game, Cumbia, Mariachi, Trance, Acid bass, Dembow, Batucada, Taiko, Cowbell, Flamenco clapping, Military drum roll, Conch and teponaztli, Drums and gong, Gamelan, Norteño polka, Cuban son, DJ scratch |
 | Machines and street | Steam locomotive, Sweet potato cart, Knife sharpener, Helicopter, Car race, Slot machine, Typewriter |
-| Animals and effects | Electric birds, Crickets, Rooster, Woodpecker, Frog chorus, Hungry cat, Mosquito, Cave drips, Rubber duck, Springs, Bouncing ball, Endless rise, System failure |
+| Animals and effects | Electric birds, Crickets, Rooster, Woodpecker, Frog chorus, Hungry cat, Mosquito, Cave drips, Rubber duck, Springs, Bouncing ball, Ping-pong, Bubbles, Endless rise, System failure |
 
 The names above are translated; in the app they appear in Spanish.
 

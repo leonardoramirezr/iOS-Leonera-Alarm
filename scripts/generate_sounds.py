@@ -378,19 +378,6 @@ def p_morse(r, mix, message="DESPIERTA"):
         t += unit * 7
 
 
-def p_klaxon(r, mix, low=False):
-    f = r.uniform(180, 260) if low else r.uniform(320, 420)
-    length = r.uniform(0.35, 0.6)
-    a = note("square", f, dur=length, attack=0.01, release=0.02)
-    b = note("saw", f * 1.012, dur=length, attack=0.01, release=0.02)
-    gap = r.uniform(0.15, 0.3)
-    t = 0.0
-    while t < DURATION:
-        mix.add(t, a, 0.6)
-        mix.add(t, b, 0.5)
-        t += length + gap
-
-
 def p_fanfare(r, mix):
     root = r.randint(55, 62)
     t = 0.0
@@ -541,7 +528,7 @@ def p_beep_storm(r, mix):
 
 # --- More building blocks -----------------------------------------------------
 # Used by the second batch of sounds (31 onwards) and by the ones that replaced the
-# sirens: pitch contours, struck and plucked tones, filters and filtered noise.
+# sirens and alarms: pitch contours, struck and plucked tones, filters and filtered noise.
 
 
 def ramp(points, n):
@@ -844,17 +831,6 @@ def follow(steps, slide=0.06):
 # --- Signals and horns ----------------------------------------------------------
 
 
-def p_smoke_alarm(r, mix):
-    # Like the temporal-3 fire alarm pattern: three half-second beeps, then a longer pause.
-    f = r.uniform(3000, 3400)
-    beep = note("square", f, dur=0.5, attack=0.003, release=0.008)
-    t = 0.0
-    while t < DURATION:
-        for k in range(3):
-            mix.add(t + k, beep, 0.8)
-        t += 3.5
-
-
 def p_reversing(r, mix):
     f = r.uniform(1000, 1250)
     beep = svf(note("square", f, dur=0.45, attack=0.004, release=0.01), f * 3.0, 0.7)
@@ -869,21 +845,6 @@ def p_reversing(r, mix):
     while t < DURATION:
         mix.add(t, beep, 0.8)
         t += 1.0
-
-
-def p_dive_klaxon(r, mix):
-    # "A-oo-ga": the motor spins up, so the pitch climbs, then sags.
-    f = r.uniform(130, 165)
-    honk = glide("saw", [(0.0, f), (0.12, f * 1.15), (0.45, f * 2.4), (0.75, f * 2.55), (0.95, f * 2.2), (1.1, f * 1.9)],
-                 amp=[(0.0, 0.5), (0.15, 0.9), (0.5, 1.0), (0.95, 1.0), (1.1, 0.6)], attack=0.02, release=0.05)
-    honk = saturate(honk, 3.0)
-    honk = svf(layer((honk, 1.0), (svf(honk, 1100, 1.8, "band"), 1.2)), 250, 0.7, "high")
-    gap = r.uniform(0.3, 0.45)
-    t = 0.0
-    while t < DURATION:
-        mix.add(t, honk, 0.7)
-        mix.add(t + 1.1 + gap, honk, 0.7)
-        t += 2 * (1.1 + gap) + r.uniform(0.4, 0.7)
 
 
 def p_foghorn(r, mix):
@@ -2752,10 +2713,11 @@ def p_glitch(r, mix):
         bar += 1
 
 
-# --- In place of the sirens -----------------------------------------------------
+# --- In place of the sirens and alarms ------------------------------------------
 # The pool used to have emergency sirens (wail, yelp, hi-lo, whoop, air raid and a car
-# alarm). Waking up to what sounds like an emergency is needlessly scary, so these took
-# their places in SOUNDS: every other sound keeps its file name and seed.
+# alarm) and alarm horns and beeps (klaxon, buzzer, dive alarm and smoke detector).
+# Waking up to what sounds like an emergency is needlessly scary, so these took their
+# places in SOUNDS: every other sound keeps its file name and seed.
 
 
 def p_kalimba(r, mix):
@@ -3037,6 +2999,137 @@ def p_norteno(r, mix):
     trim_bass(mix)
 
 
+def p_harpsichord(r, mix):
+    # Harpsichord: a baroque prelude of broken chords in running sixteenths. A quill plucks each string, so
+    # every note is bright and starts with a click, and a second string an octave up sounds with it.
+    root = r.randint(60, 64)
+    sixteenth = r.uniform(0.11, 0.13)
+    progression = r.choice([[0, 1, 4, 0, 5, 1, 4, 0], [0, 3, 4, 0, 5, 3, 4, 4], [0, 5, 1, 4, 0, 3, 4, 0]])
+    figures = [[0, 1, 2, 3, 4, 2, 3, 4], [0, 1, 2, 3, 4, 3, 2, 1]]
+    quill = burst(0.008, 4000, 1.5, 0.002, seed=290)
+
+    def key(degree, dur):
+        f = scale_note(root, "major", degree)
+        return layer((pluck(f, dur, t60=1.2, bright=0.95, seed=degree % 7), 1.0),
+                     (pluck(f * 2, dur, t60=0.8, bright=0.95, seed=degree % 7 + 7), 0.35))
+
+    t = 0.0
+    bar = 0
+    while t < DURATION:
+        c = progression[bar % len(progression)]
+        voicing = [c - 7, c - 5, c, c + 2, c + 4]
+        figure = figures[(bar // 2) % 2]
+        for half in range(2):
+            for k, v in enumerate(figure):
+                start = t + (8 * half + k) * sixteenth
+                # The bass note is held for the whole half bar, the others ring for a beat.
+                mix.add(start, key(voicing[v], sixteenth * (8 if k == 0 else 4)), 0.5 if k == 0 else 0.4)
+                mix.add(start, quill, 0.08)
+        t += 16 * sixteenth
+        bar += 1
+
+
+def p_bubbles(r, mix):
+    # Bubbles rising through water: each one a quick "bloop" whose pitch climbs as it pops, the small ones
+    # higher and shorter, in streams that come and go, and now and then a big gulp of air.
+    def bloop(f, length):
+        return glide("sine", [(0.0, f), (length, f * 2.0)], amp=[(0.0, 1.0), (length * 0.3, 0.45), (length, 0.0)],
+                     attack=0.003, release=0.005)
+
+    small = [bloop(f, 0.03 + 30.0 / f) for f in (r.uniform(500, 1800) for _ in range(10))]
+    low = r.uniform(220, 300)
+    gulp = [bloop(low, 0.18), bloop(low * 1.5, 0.12)]
+    t = 0.2
+    while t < DURATION:
+        end = t + r.uniform(1.5, 4.0)
+        rate = r.uniform(8, 25)
+        while t < end:
+            mix.add(t, r.choice(small), r.uniform(0.4, 0.9))
+            t += r.expovariate(rate)
+        t += r.uniform(0.3, 0.8)
+        if r.random() < 0.4:
+            mix.add(t, gulp[0], 0.9)
+            mix.add(t + 0.05, gulp[1], 0.55)
+            t += 0.3
+
+
+def p_ping_pong(r, mix):
+    # A ping-pong rally: paddle, table, paddle, table, a little faster on every stroke, until someone smashes
+    # it or misses and the ball bounces away on the floor.
+    table = layer((strike(r.uniform(1100, 1300), ((1.0, 1.0, 0.035), (2.3, 0.4, 0.015)), 0.15), 1.0),
+                  (burst(0.02, 3200, 1.5, 0.004, seed=291), 0.5))
+    paddle = layer((strike(r.uniform(600, 700), ((1.0, 1.0, 0.04), (1.9, 0.5, 0.018)), 0.18), 1.0),
+                   (burst(0.03, 1500, 1.2, 0.006, seed=292), 0.6))
+    floor = layer((strike(r.uniform(800, 900), ((1.0, 1.0, 0.015), (2.3, 0.3, 0.008)), 0.06), 1.0),
+                  (burst(0.02, 2500, 1.5, 0.004, seed=293), 0.4))
+    t = 0.3
+    while t < DURATION:
+        # The serve bounces once on the server's own side first.
+        mix.add(t, paddle, 0.8)
+        mix.add(t + 0.2, table, 0.7)
+        t += 0.2
+        stroke = r.uniform(0.5, 0.6)
+        for _ in range(r.randint(8, 18)):
+            t += stroke * 0.65
+            mix.add(t, table, 0.7)
+            t += stroke * 0.35
+            mix.add(t, paddle, r.uniform(0.6, 0.85))
+            stroke = max(0.36, stroke * 0.97)
+        if r.random() < 0.5:
+            t += 0.15
+            mix.add(t, table, 0.9)
+            t += 0.25
+        interval, gain = 0.35, 0.7
+        while interval > 0.04:
+            t += interval
+            mix.add(t, floor, gain)
+            interval *= 0.72
+            gain *= 0.8
+        t += r.uniform(0.6, 1.1)
+
+
+def p_son(r, mix):
+    # Cuban son: the clave's 3-2 pattern, a tres guitar repeating a syncopated montuno in thirds, the conga's
+    # tumbao and maracas on every eighth.
+    key = r.randint(62, 67)
+    eighth = 60.0 / r.uniform(100, 112) / 2
+    progression = r.choice([[0, 3, 4, 3], [0, 4, 4, 0], [0, 3, 0, 4]])
+    montuno = r.choice([[0, 2, 3, 5, 7], [0, 1, 3, 4, 6], [1, 3, 4, 6, 7]])  # eighths of the bar the tres plays
+    melody = r.choice([[0, 2, 4, 2, 7], [4, 2, 0, 2, 4], [2, 4, 7, 4, 2]])
+    clave = layer((strike(r.uniform(2300, 2600), ((1.0, 1.0, 0.03), (2.7, 0.3, 0.01)), 0.12), 1.0),
+                  (burst(0.01, 4000, 1.2, 0.002, seed=294), 0.3))
+    maracas = [burst(0.06, 7000, 1.0, 0.015, seed=295 + k, attack=0.008) for k in range(2)]
+    open_tone = drum(330.0, 300.0, 0.1, 900, 297)
+    slap = layer((drum(380.0, 340.0, 0.03, 1500, 298), 0.6), (burst(0.05, 1800, 1.0, 0.015, seed=299), 0.8))
+    heel = drum(250.0, 230.0, 0.03, 600, 300, drive=1.5)
+    tumbao = {0: (heel, 0.25), 2: (slap, 0.55), 4: (heel, 0.25), 6: (open_tone, 0.5), 7: (open_tone, 0.5)}
+
+    def tres(degree):
+        # The tres has paired strings, some of them an octave apart.
+        m = key + scale_step("major", degree)
+        return layer((pluck(midi(m), 0.5, t60=0.6, bright=0.85, seed=m), 0.6),
+                     (pluck(midi(m + 12), 0.5, t60=0.5, bright=0.85, seed=m + 1), 0.3))
+
+    t = 0.0
+    bar = 0
+    while t < DURATION:
+        chord = progression[bar % 4]
+        for e in range(8):
+            when = t + e * eighth
+            mix.add(when, maracas[e % 2], 0.25 if e % 2 == 0 else 0.15)
+            if (8 * (bar % 2) + e) in (0, 3, 6, 10, 12):
+                mix.add(when, clave, 0.6)
+            if e in tumbao:
+                mix.add(when, *tumbao[e])
+        for j, e in enumerate(montuno):
+            top = chord + melody[j]
+            mix.add(t + e * eighth, tres(top), 0.4)
+            mix.add(t + e * eighth, tres(top - 2), 0.3)
+        t += 8 * eighth
+        bar += 1
+    trim_bass(mix)
+
+
 # A sound's file name and random seed come from its position in this list: add new
 # sounds at the end so that the existing ones stay exactly the same, and to drop one,
 # put another sound in its place.
@@ -3048,7 +3141,7 @@ SOUNDS = [
     ("Reloj digital", p_digital),
     ("Pájaros eléctricos", p_chirps),
     ("Morse: DESPIERTA", p_morse),
-    ("Claxon", lambda r, m: p_klaxon(r, m, low=False)),
+    ("Clavecín", p_harpsichord),
     ("Fanfarria", p_fanfare),
     ("Marimba nerviosa", lambda r, m: p_melody(r, m, "marimba", "pentatonic", True)),
     ("Sonar", p_sonar),
@@ -3064,17 +3157,17 @@ SOUNDS = [
     ("Caja de música", lambda r, m: p_melody(r, m, "musicbox", "major", False)),
     ("Pitidos agudos", lambda r, m: p_beeps(r, m, "sine", (2800, 3600), (3, 3))),
     ("Arpegio menor", lambda r, m: p_arpeggio(r, m, "pluck", "minor")),
-    ("Zumbador", lambda r, m: p_klaxon(r, m, low=True)),
+    ("Burbujas", p_bubbles),
     ("Robot parlanchín", p_robot),
     ("Campanario", p_bells),
     ("Máquina de escribir", p_typewriter),
     ("Teletipo", p_teletype),
     ("Despertador de campana", lambda r, m: p_trill(r, m, hammer=True)),
     ("Tormenta de pitidos", p_beep_storm),
-    ("Detector de humo", p_smoke_alarm),
+    ("Ping-pong", p_ping_pong),
     ("Marcha atrás", p_reversing),
     ("Silbido alegre", p_whistling),
-    ("Alarma de inmersión", p_dive_klaxon),
+    ("Son cubano", p_son),
     ("Polka norteña", p_norteno),
     ("Sirena de niebla", p_foghorn),
     ("Paso a nivel", p_crossing_bell),
