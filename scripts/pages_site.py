@@ -156,13 +156,15 @@ def render_build(folder, build, base_url):
     kind = ("versión estable" if build.get("stable")
             else "build de prueba de la rama <code>%s</code>" % html.escape(build.get("branch", "")))
     body = """<header><img src="icon-512.png" alt=""><div><h1>{title} {tag}</h1>
-<p class="muted">{kind} · versión {version} ({build_number}) · commit <code>{commit}</code></p></div></header>
+<p class="muted">{kind} · versión {version} ({build_number}) · commit <code>{commit}</code></p>{commit_title}</div></header>
 <a class="button" href="{install}">Instalar en el iPhone</a>
 {help}
 <p class="muted"><a href="{ipa}">Descargar el IPA</a> · <a href="{release}">Release</a> · <a href="{run}">Ejecución en Actions</a> · <a href="../">Todos los builds</a></p>
 """.format(title=html.escape(build["title"]), tag=html.escape(build["tag"]), kind=kind,
            version=html.escape(build["version"]), build_number=html.escape(str(build.get("build_number", ""))),
-           commit=html.escape(build.get("commit", "")[:7]), install=html.escape(build["install_url"]), help=HELP,
+           commit=html.escape(build.get("commit", "")[:7]),
+           commit_title=('<p>%s</p>' % html.escape(build["commit_title"])) if build.get("commit_title") else "",
+           install=html.escape(build["install_url"]), help=HELP,
            ipa=html.escape(urllib.parse.quote(ipa_name)), release=html.escape(build.get("release_url", "")),
            run=html.escape(build.get("run_url", "")))
     with open(os.path.join(folder, "index.html"), "w", encoding="utf-8") as f:
@@ -182,6 +184,7 @@ def cmd_build(args):
         "stable": args.stable == "true",
         "branch": args.branch,
         "commit": args.commit,
+        "commit_title": args.commit_title,
         "bundle_id": args.bundle_id,
         "title": args.title,
         "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -231,6 +234,8 @@ def cmd_index(args):
             detail = b.get("date", "")[:10]
             if not b.get("stable"):
                 detail = "%s · %s" % (b.get("branch", ""), detail)
+            if b.get("commit_title"):
+                detail = "%s · %s" % (b["commit_title"], detail)
             parts.append('<li><div><a href="%s/">%s</a><p class="muted">%s</p></div><a class="tag" href="%s">Instalar</a></li>'
                          % (html.escape(urllib.parse.quote(b["folder"])), html.escape(b["tag"]),
                             html.escape(detail), html.escape(b["install_url"])))
@@ -253,6 +258,7 @@ def main():
     for name in ("dir", "base-url", "tag", "ipa", "bundle-id", "version", "build-number", "run-number",
                  "stable", "branch", "commit", "title", "run-url", "release-url"):
         build.add_argument("--" + name, required=True)
+    build.add_argument("--commit-title", default="")
     build.set_defaults(func=cmd_build)
     index = sub.add_parser("index")
     index.add_argument("--dir", required=True)

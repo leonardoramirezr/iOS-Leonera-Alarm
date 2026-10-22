@@ -33,6 +33,7 @@ RELEASE_URL="${RELEASE_URL:-${SERVER}/${GITHUB_REPOSITORY}/releases/tag/${TAG}}"
 BRANCH="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
 SCRIPTS="$(cd "$(dirname "$0")" && pwd)"
 GIT_DIR_ABS="$(git rev-parse --absolute-git-dir)"
+COMMIT_TITLE="$(git log -1 --format=%s "${GITHUB_SHA}" 2>/dev/null || true)"
 
 if [ -z "${PAGES_URL:-}" ]; then
     # On error (e.g. 404 while Pages is not enabled) gh prints the error body
@@ -60,7 +61,7 @@ python3 "${SCRIPTS}/pages_site.py" build \
     --dir "${build_dir}" --base-url "${PAGES_URL}" --tag "${TAG}" --ipa "${IPA}" \
     --bundle-id "${BUNDLE_ID}" --version "${VERSION}" --build-number "${BUILD_NUMBER}" \
     --run-number "${GITHUB_RUN_NUMBER}" --stable "${STABLE}" --branch "${BRANCH}" \
-    --commit "${GITHUB_SHA}" --title "${APP_TITLE}" --run-url "${RUN_URL}" --release-url "${RELEASE_URL}"
+    --commit "${GITHUB_SHA}" --commit-title "${COMMIT_TITLE}" --title "${APP_TITLE}" --run-url "${RUN_URL}" --release-url "${RELEASE_URL}"
 
 export GIT_AUTHOR_NAME="github-actions[bot]" GIT_COMMITTER_NAME="github-actions[bot]"
 export GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
