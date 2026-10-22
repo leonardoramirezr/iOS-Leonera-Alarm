@@ -132,6 +132,15 @@ final class AlarmController: ObservableObject {
         sounds.sound(for: date, timeZone: calendar.timeZone)
     }
 
+    /// The sound that rang for that wake-up. A test rings with the sound it was
+    /// scheduled with, not the one of its own day.
+    private func soundTitle(forWake occurrence: Date, isTest: Bool) -> String? {
+        if isTest, let test = state.test, test.occurrence.isSameInstant(as: occurrence), let file = test.sound {
+            return sounds.sounds.first { $0.file == file }?.title ?? (file as NSString).deletingPathExtension
+        }
+        return soundInfo(for: occurrence)?.title
+    }
+
     // MARK: - Lifecycle
 
     func sceneDidBecomeActive() {
@@ -322,7 +331,7 @@ final class AlarmController: ObservableObject {
             let id = UUID()
             do {
                 try await self.scheduleAlarm(id: id, kind: .test, schedule: .fixed(occurrence), sound: sound)
-                self.state.test = TestRecord(id: id, occurrence: occurrence)
+                self.state.test = TestRecord(id: id, occurrence: occurrence, sound: sound)
                 await self.scheduleRetries(
                     for: occurrence,
                     at: AlarmRules.testRetryMinutes.map { occurrence.addingTimeInterval(TimeInterval($0 * 60)) },
@@ -418,7 +427,8 @@ final class AlarmController: ObservableObject {
         case .wake(let occurrence, let isTest):
             state.markCompleted(occurrence)
             state.recordWake(
-                WakeRecord(occurrence: occurrence, completedAt: now, solved: summary.solved, mistakes: summary.mistakes, isTest: isTest))
+                WakeRecord(occurrence: occurrence, completedAt: now, solved: summary.solved, mistakes: summary.mistakes, isTest: isTest,
+                           sound: soundTitle(forWake: occurrence, isTest: isTest)))
             save()
             enqueue {
                 self.stopRingingAlarms()
