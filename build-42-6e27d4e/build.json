@@ -1,0 +1,17 @@
+{
+  "tag": "build-42-6e27d4e",
+  "version": "0.6.0",
+  "build_number": "42",
+  "run_number": 42,
+  "stable": false,
+  "branch": "claude/challenge-durations-15s-30s-v5h8ho",
+  "commit": "6e27d4ed01229a151a619bea39ecf3b181f918c3",
+  "bundle_id": "com.leonardoramirezr.leoneraalarm",
+  "title": "Vigilia",
+  "date": "2026-10-20T17:27:54Z",
+  "ipa": "Vigilia.ipa",
+  "run_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/actions/runs/39465180710",
+  "release_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/releases/tag/build-42-6e27d4e",
+  "manifest_url": "https://leonardoramirezr.github.io/iOS-Leonera-Alarm/build-42-6e27d4e/manifest.plist",
+  "install_url": "itms-services://?action=download-manifest&url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-42-6e27d4e%2Fmanifest.plist"
+}

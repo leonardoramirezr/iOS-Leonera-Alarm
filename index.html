@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vigilia</title>
+<link rel="apple-touch-icon" href="0.12.0/icon-512.png">
+<style>
+:root { color-scheme: light dark; --bg: #f5f5f7; --card: #fff; --text: #1d1d1f; --muted: #6e6e73; --accent: #0071e3; --line: #d2d2d7; }
+@media (prefers-color-scheme: dark) { :root { --bg: #000; --card: #1c1c1e; --text: #f5f5f7; --muted: #98989d; --accent: #2997ff; --line: #38383a; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+main { max-width: 640px; margin: 0 auto; padding: 32px 16px 48px; }
+header { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; }
+header img { width: 72px; height: 72px; border-radius: 16px; }
+h1 { font-size: 28px; margin: 0; }
+h2 { font-size: 20px; margin: 32px 0 12px; }
+p { margin: 4px 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.button { display: block; text-align: center; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; padding: 14px 20px; border-radius: 12px; margin: 16px 0; }
+.card { background: var(--card); border-radius: 14px; padding: 16px; margin: 12px 0; }
+ul { list-style: none; padding: 0; margin: 0; background: var(--card); border-radius: 14px; }
+li { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+li:first-child { border-top: 0; }
+li a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+code { font-size: 13px; }
+.warn { border: 2px solid #ff9f0a; font-weight: 600; }
+[hidden] { display: none !important; }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+<header><img src="0.12.0/icon-512.png" alt=""><div><h1>Vigilia</h1><p class="muted">Última versión estable: <strong>0.12.0</strong></p></div></header>
+<a class="button" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.12.0%2Fmanifest.plist">Instalar la última versión estable (0.12.0)</a>
+<p class="card warn" id="warn" hidden></p>
+<div class="card" id="after" hidden>
+<p><strong>¿Tocaste «Instalar» en la ventana de Safari?</strong></p>
+<p class="muted">La app se descarga directo a la pantalla de inicio (o solo a la Biblioteca de apps, según tus ajustes), sin barra de progreso en Safari: desliza hacia abajo en la pantalla de inicio y busca «Vigilia».
+Si no apareció ninguna ventana, recarga esta página y vuelve a tocar el botón.</p>
+</div>
+<div class="card">
+<p><strong>Cómo instalar</strong></p>
+<p class="muted">Abre esta página en <strong>Safari</strong> (no en Chrome ni dentro de otra app) en un iPhone registrado en la cuenta de desarrollador, toca el botón y luego <strong>Instalar</strong> en la ventana que aparece.
+Para abrir la app hace falta Ajustes › Privacidad y seguridad › <strong>Modo de desarrollador</strong> activado (pide reiniciar).</p>
+</div>
+<script>
+(function () {
+  var ua = navigator.userAgent;
+  var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var safari = /Safari[/]/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA[/]/.test(ua);
+  var warn = document.getElementById("warn");
+  if (!ios) {
+    warn.textContent = "Abre esta página en el iPhone: las apps solo se instalan desde Safari en el iPhone.";
+    warn.hidden = false;
+  } else if (!safari) {
+    warn.textContent = "Estás en otro navegador o en el navegador de una app, que no pueden instalar apps. Abre esta página en Safari.";
+    warn.hidden = false;
+  }
+  document.querySelectorAll('a[href^="itms-services:"]').forEach(function (a) {
+    a.addEventListener("click", function () { document.getElementById("after").hidden = false; });
+  });
+})();
+</script>
+<h2>Versiones estables (main)</h2>
+<ul>
+<li><div><a href="0.12.0/">0.12.0</a><p class="muted">Sustituir los sonidos que parecen sirena o alarma de emergencia (#17) · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.12.0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="0.11.0/">0.11.0</a><p class="muted">Show the build name at the end of the settings (#20) · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.11.0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="0.10.0/">0.10.0</a><p class="muted">Mostrar el sonido que sonó en Últimos despertares (#16) · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.10.0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="0.9.0/">0.9.0</a><p class="muted">Show the commit title on the GitHub Pages build pages (#19) · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.9.0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="0.8.0/">0.8.0</a><p class="muted">2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.8.0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="0.7.0/">0.7.0</a><p class="muted">2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.7.0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="0.6.0/">0.6.0</a><p class="muted">2026-10-15</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.6.0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="0.5.0/">0.5.0</a><p class="muted">2026-10-15</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.5.0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="0.4.0/">0.4.0</a><p class="muted">2026-10-14</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.4.0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="0.3.0/">0.3.0</a><p class="muted">2026-10-14</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.3.0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="0.2.0/">0.2.0</a><p class="muted">2026-10-14</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.2.0%2Fmanifest.plist">Instalar</a></li>
+</ul>
+<h2>Builds de otras ramas</h2>
+<ul>
+<li><div><a href="build-56-d65a6e6/">build-56-d65a6e6</a><p class="muted">Replace the klaxon, buzzer, dive alarm and smoke detector too · claude/emergency-siren-sounds-3pmggc · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-56-d65a6e6%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-54-e1715b0/">build-54-e1715b0</a><p class="muted">Show the build name at the end of the settings · show-build-name-in-settings · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-54-e1715b0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-50-92f441a/">build-50-92f441a</a><p class="muted">Show the commit title on the GitHub Pages build pages · claude/pages-commit-title · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-50-92f441a%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-49-f09fb00/">build-49-f09fb00</a><p class="muted">claude/claude-md-guidelines-xbqzba · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-49-f09fb00%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-48-8cdeda0/">build-48-8cdeda0</a><p class="muted">claude/emergency-siren-sounds-3pmggc · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-48-8cdeda0%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-47-1aefc0c/">build-47-1aefc0c</a><p class="muted">ultimos-despertares-sonido · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-47-1aefc0c%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-45-e89995a/">build-45-e89995a</a><p class="muted">claude/alarm-config-next-alarm-u8t1zx · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-45-e89995a%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-43-f9e62f3/">build-43-f9e62f3</a><p class="muted">claude/alarm-config-next-alarm-u8t1zx · 2026-10-22</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-43-f9e62f3%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-42-6e27d4e/">build-42-6e27d4e</a><p class="muted">claude/challenge-durations-15s-30s-v5h8ho · 2026-10-20</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-42-6e27d4e%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-40-7271a26/">build-40-7271a26</a><p class="muted">claude/kind-keller-5bdz1q · 2026-10-15</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-40-7271a26%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-38-7caa79f/">build-38-7caa79f</a><p class="muted">claude/restore-idle-ring · 2026-10-15</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-38-7caa79f%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-36-739b12c/">build-36-739b12c</a><p class="muted">claude/alarm-full-volume · 2026-10-14</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-36-739b12c%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-34-01131a5/">build-34-01131a5</a><p class="muted">claude/sleepy-pascal-crfkou · 2026-10-14</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-34-01131a5%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-31-4d6390d/">build-31-4d6390d</a><p class="muted">claude/adhoc-signing-pages · 2026-10-13</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-31-4d6390d%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-30-220ca8d/">build-30-220ca8d</a><p class="muted">claude/adhoc-signing-pages · 2026-10-13</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-30-220ca8d%2Fmanifest.plist">Instalar</a></li>
+<li><div><a href="build-29-14e6ab2/">build-29-14e6ab2</a><p class="muted">claude/adhoc-signing-pages · 2026-10-13</p></div><a class="tag" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-29-14e6ab2%2Fmanifest.plist">Instalar</a></li>
+</ul>
+</main>
+</body>
+</html>
