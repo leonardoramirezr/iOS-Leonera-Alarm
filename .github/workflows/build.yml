@@ -153,6 +153,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           BUNDLE_ID: ${{ steps.ids.outputs.bundle_id }}
           VERSION: ${{ steps.tag.outputs.version }}
+          BUILD_NAME: ${{ steps.tag.outputs.tag }}
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
           args=(
@@ -163,6 +164,7 @@ jobs:
             APP_BUNDLE_ID="${BUNDLE_ID}"
             MARKETING_VERSION="${VERSION}"
             CURRENT_PROJECT_VERSION="${BUILD_NUMBER}"
+            VIGILIA_BUILD_NAME="${BUILD_NAME}"
           )
           if [ "${SIGNING}" = "signed" ]; then
             args+=(

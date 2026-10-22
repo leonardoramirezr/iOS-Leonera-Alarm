@@ -113,6 +113,8 @@ struct DayOverrideRecord: Codable, Equatable {
 struct TestRecord: Codable, Equatable {
     var id: UUID
     var occurrence: Date
+    /// The sound file it rings with: the one of the next alarm when it was scheduled.
+    var sound: String? = nil
 }
 
 struct WakeRecord: Codable, Equatable, Identifiable {
@@ -121,6 +123,8 @@ struct WakeRecord: Codable, Equatable, Identifiable {
     var solved: Int
     var mistakes: Int
     var isTest: Bool
+    /// Title of the sound that rang. Missing in records saved by older versions.
+    var sound: String? = nil
 
     var id: Date { completedAt }
 }

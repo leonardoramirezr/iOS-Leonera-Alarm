@@ -6,13 +6,14 @@
 #   build/Vigilia.app   the app bundle
 #   build/Vigilia.ipa   unsigned IPA, ready for Sideloadly / AltStore / SideStore
 #
-# Environment overrides: VERSION, BUILD_NUMBER. The bundle ID is fixed.
+# Environment overrides: VERSION, BUILD_NUMBER, BUILD_NAME. The bundle ID is fixed.
 set -euo pipefail
 
 APP_NAME="Vigilia"
 BUNDLE_ID="com.leonardoramirezr.leoneraalarm"  # fixed; keep in sync with APP_BUNDLE_ID in project.yml
 VERSION="${VERSION:-1.0}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
+BUILD_NAME="${BUILD_NAME:-local}"
 MIN_IOS="26.0"
 BUILD_DIR="build"
 OBJ_DIR="${BUILD_DIR}/obj"
@@ -101,6 +102,7 @@ cp Info.plist "${INFO}"
 plutil -replace CFBundleIdentifier -string "${BUNDLE_ID}" "${INFO}"
 plutil -replace CFBundleShortVersionString -string "${VERSION}" "${INFO}"
 plutil -replace CFBundleVersion -string "${BUILD_NUMBER}" "${INFO}"
+plutil -replace VigiliaBuildName -string "${BUILD_NAME}" "${INFO}"
 plutil -replace MinimumOSVersion -string "${MIN_IOS}" "${INFO}"
 plutil -replace CFBundleSupportedPlatforms -json '["iPhoneOS"]' "${INFO}"
 plutil -replace DTPlatformName -string iphoneos "${INFO}"
