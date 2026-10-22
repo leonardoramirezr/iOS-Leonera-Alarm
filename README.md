@@ -1,340 +1,344 @@
 # Vigilia
 
-Alarma para iPhone (iOS 26 o posterior) hecha con **AlarmKit**, el framework de alarmas que Apple abrió a apps de terceros en iOS 26:
+An iPhone alarm (iOS 26 or later) built with **AlarmKit**, the alarm framework Apple opened to third-party apps in iOS 26:
 
-- ⏰ **La misma hora todos los días o una distinta para cada día** (por ejemplo, 6:30 entre semana y 9:00 el fin de semana).
-- 🔊 **Cada día suena un sonido distinto** para que no te acostumbres: hay 90 sonidos sintetizados desde cero, todos diferentes entre sí, y no se repite ninguno hasta haberlos usado todos (unos tres meses).
-- 🚫 **No se puede posponer.** La alarma no tiene botón de posponer, y si la detienes desde la pantalla bloqueada, con los botones físicos o cerrando la app, **vuelve a sonar**.
-- 🧠 **Para apagarla de verdad hay que hacer cálculo mental de 15 segundos a 10 minutos** (tú eliges). El tiempo solo avanza mientras respondes bien. También eliges la dificultad: operaciones con números de 1, 2 o 3 dígitos.
-- 🌙 **¿Ya despertaste antes?** Desde 3 horas antes de que suene puedes desactivar esa alarma haciendo el mismo reto desde la app. Solo se salta esa vez.
-- 📈 **Estadísticas de tus despertares:** a qué hora sonó la alarma, a qué hora la apagaste y cuánto tardaste, con promedio, percentiles y gráficas de cómo han cambiado, por día de la semana o de toda la semana, contando siempre, el último año, mes o semana.
+- ⏰ **The same time every day, or a different time for each day** (for example, 6:30 on weekdays and 9:00 on weekends).
+- 🔊 **A different sound every day** so you don't get used to it: there are 90 sounds synthesized from scratch, all different from one another, and none repeats until all of them have been used (about three months).
+- 🚫 **No snooze.** The alarm has no snooze button, and if you stop it from the lock screen, with the hardware buttons, or by closing the app, **it rings again**.
+- 🧠 **To really turn it off you have to do mental math for 15 seconds to 10 minutes** (your choice). Time only moves forward while you answer correctly. You also choose the difficulty: operations with 1-, 2-, or 3-digit numbers.
+- 🌙 **Already awake?** Starting 3 hours before it rings you can turn off that alarm by doing the same challenge from the app. Only that one occurrence is skipped.
+- 📈 **Wake-up statistics:** what time the alarm rang, what time you turned it off, and how long it took you, with averages, percentiles, and charts of how they have changed, by weekday or for the whole week, counting all time, the last year, month, or week.
 
-Se compila de dos formas: en **GitHub Actions** (sin Mac), que firma la app Ad Hoc y la publica en una página desde la que se instala con Safari en el iPhone, o con un **script local** sin proyecto de Xcode (solo `swiftc`, un `Makefile` y `build.sh`). El proyecto de Xcode que usa GitHub Actions no está en el repositorio: se genera con [XcodeGen](https://github.com/yonaskolb/XcodeGen) a partir de [`project.yml`](project.yml).
+It can be built in two ways: on **GitHub Actions** (no Mac needed), which signs the app Ad Hoc and publishes it on a page you install it from with Safari on the iPhone, or with a **local script** without an Xcode project (just `swiftc`, a `Makefile`, and `build.sh`). The Xcode project that GitHub Actions uses is not in the repository: it is generated with [XcodeGen](https://github.com/yonaskolb/XcodeGen) from [`project.yml`](project.yml).
+
+> The app's interface is in Spanish. Button and setting names below are quoted exactly as they appear in the app, followed by an English translation.
 
 ---
 
-## Respuesta corta a lo que pediste
+## At a glance
 
-| Requisito | ¿Se pudo? | Detalle |
+| Requirement | Possible? | Details |
 |---|---|---|
-| Usar AlarmKit | ✅ Sí | Las alarmas las programa iOS con `AlarmManager`: suenan con el iPhone en silencio, en Concentración, con la app cerrada y después de reiniciar. |
-| Sonido diferente cada día | ✅ Sí | 90 sonidos propios en rotación barajada. Nunca suena el mismo dos días seguidos. |
-| Sin posponer, ni cerrando la app | ✅ Sí, con un matiz | iOS **siempre** muestra un control para detener la alarma y los botones físicos también la detienen; ninguna app puede quitar eso. Vigilia lo resuelve haciendo que la alarma **vuelva a sonar** (cada minuto y luego más espaciado, durante una hora) hasta que completes el reto. Esas repeticiones ya están programadas en iOS, así que cerrar o matar la app no las detiene. |
-| Que suene a todo volumen aunque el volumen esté bajo | ⚠️ Parcial | **Durante el reto, sí:** si dejas de acertar, la alarma vuelve a sonar dentro de la app y sube el volumen del iPhone al máximo (en su bocina). **Con el iPhone bloqueado, no:** AlarmKit suena al volumen de tono y alertas de iOS y ninguna app puede subirlo; hay que dejarlo al máximo y desactivar «Cambiar con botones». Ver [El volumen](#el-volumen). |
-| Apagarla con un ejercicio mental de 1 minuto | ✅ Sí | 1 minuto de cálculo mental (o de 15 s a 10 min, si lo eliges); el reloj se pausa si dejas de responder y cada error resta 5 s. |
-| Compilar sin Xcode | ⚠️ Parcial | **GitHub Actions: sí, sin Mac y sin Xcode de tu lado.** **Local:** necesitas una Mac con Xcode *instalado* (nunca lo abres y no hay `.xcodeproj`). Sin Xcode instalado no es posible: el SDK de iOS solo viene dentro de Xcode. |
-| Instalarla desde el iPhone | ✅ Sí, con la cuenta de desarrollador | Cada push firma la app **Ad Hoc** y la publica en GitHub Pages: se instala desde Safari en los iPhone registrados en tu cuenta de Apple Developer. Ver [Instalar desde Safari](#instalar-desde-safari-ad-hoc). |
-| Instalarla sin la suscripción de desarrollador | ⚠️ Sí, con límites | Con tu Apple ID **gratuito** y Sideloadly, AltStore o SideStore. La firma dura **7 días** (hay que renovarla), máximo 3 apps instaladas así y necesitas una computadora (Windows o Mac) al menos la primera vez. |
+| Use AlarmKit | ✅ Yes | iOS schedules the alarms through `AlarmManager`: they ring with the iPhone on silent, in a Focus, with the app closed, and after a restart. |
+| A different sound every day | ✅ Yes | 90 custom sounds in a shuffled rotation. The same sound never plays two days in a row. |
+| No snooze, not even by closing the app | ✅ Yes, with a caveat | iOS **always** shows a control to stop the alarm and the hardware buttons stop it too; no app can remove that. Vigilia handles it by making the alarm **ring again** (every minute and then further apart, for an hour) until you complete the challenge. Those repeats are already scheduled in iOS, so closing or killing the app does not stop them. |
+| Ring at full volume even if the volume is low | ⚠️ Partial | **During the challenge, yes:** if you stop answering correctly, the alarm rings again inside the app and raises the iPhone volume to the maximum (on its speaker). **With the iPhone locked, no:** AlarmKit rings at the iOS ringtone and alerts volume and no app can raise it; you have to leave it at the maximum and turn off "Change with Buttons". See [Volume](#volume). |
+| Turn it off with a 1-minute mental exercise | ✅ Yes | 1 minute of mental math (or 15 s to 10 min, if you choose); the clock pauses if you stop answering and each mistake subtracts 5 s. |
+| Build without Xcode | ⚠️ Partial | **GitHub Actions: yes, with no Mac and no Xcode on your side.** **Locally:** you need a Mac with Xcode *installed* (you never open it and there is no `.xcodeproj`). Without Xcode installed it is not possible: the iOS SDK only ships inside Xcode. |
+| Install it from the iPhone | ✅ Yes, with the developer account | Every push signs the app **Ad Hoc** and publishes it on GitHub Pages: it installs from Safari on the iPhones registered in your Apple Developer account. See [Install from Safari](#install-from-safari-ad-hoc). |
+| Install it without the developer subscription | ⚠️ Yes, with limits | With your **free** Apple ID and Sideloadly, AltStore, or SideStore. The signature lasts **7 days** (it has to be renewed), at most 3 apps installed this way, and you need a computer (Windows or Mac) at least the first time. |
 
 ---
 
-## Cómo funciona
+## How it works
 
-### Las alarmas
-- Por cada día de la semana elegido se programa una alarma semanal en AlarmKit, **a la hora de ese día** y con **el sonido que le toca a esa fecha**. Con «Misma hora todos los días» activado todos los días usan una sola hora; al desactivarlo eliges la hora de cada día por separado (y si vuelves a activarlo, las horas por día se guardan para la próxima vez). Cada vez que abres la app (y la abres a diario, porque ahí se hace el reto) las alarmas se reajustan para que los sonidos sigan rotando. Si no abrieras la app en una semana, igual sonarían 7 sonidos distintos.
-- Detrás de cada alarma hay una **cadena de repeticiones** ya programada en iOS: a los 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 30, 45 y 60 minutos. Solo se cancela cuando completas el reto.
-- Si detienes la alarma desde la pantalla bloqueada, Vigilia además programa otra repetición a 1 minuto (si iOS ejecuta su acción de "detener"; a veces no lo hace, por eso existe la cadena).
-- La alerta tiene un único botón extra, **«Resolver reto»**, que abre la app directo en el reto.
+### The alarms
+- For each chosen weekday a weekly alarm is scheduled in AlarmKit, **at that day's time** and with **the sound assigned to that date**. With «Misma hora todos los días» ("Same time every day") on, every day uses a single time; turning it off lets you choose the time of each day separately (and if you turn it back on, the per-day times are kept for next time). Every time you open the app (and you open it daily, because that's where the challenge happens) the alarms are readjusted so the sounds keep rotating. If you didn't open the app for a week, 7 different sounds would still play.
+- Behind each alarm there is a **chain of repeats** already scheduled in iOS: at 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 30, 45, and 60 minutes. It is only cancelled when you complete the challenge.
+- If you stop the alarm from the lock screen, Vigilia also schedules another repeat in 1 minute (if iOS runs its "stop" action; sometimes it doesn't, which is why the chain exists).
+- The alert has a single extra button, **«Resolver reto»** ("Solve challenge"), which opens the app directly in the challenge.
 
-### Los sonidos
-Son 90 y todos se sintetizan desde cero con [`scripts/generate_sounds.py`](scripts/generate_sounds.py), sin grabaciones ni audio de terceros. Cada uno tiene su propio timbre, ritmo y altura.
+### The sounds
+There are 90 and all of them are synthesized from scratch with [`scripts/generate_sounds.py`](scripts/generate_sounds.py), with no recordings or third-party audio. Each one has its own timbre, rhythm, and pitch.
 
-| Tipo | Sonidos |
+| Type | Sounds |
 |---|---|
-| Pitidos y señales | Pitidos clásicos, Pitidos agudos, Reloj digital, Tormenta de pitidos, Morse: DESPIERTA, Teletipo, Sonar, Pulsos que aceleran, Láseres, Alerta espacial, Robot parlanchín, Detector de humo, Marcha atrás, Walkie-talkie, Módem, Contador Geiger |
-| Sirenas, bocinas y silbatos | Sirena lenta, Sirena europea, Sirena aullido, Sirena antiaérea, Alarma de coche, Alarma de inmersión, Claxon, Zumbador, Sirena de niebla, Bocina de tren, Silbato de árbitro |
-| Campanas, timbres y relojes | Campanas de cristal, Campanario, Despertador de campana, Teléfono antiguo, Caja de música, Paso a nivel, Timbre de la puerta, Reloj cucú |
-| Instrumentos | Fanfarria, Toque de diana, Trompeta con sordina, Marimba nerviosa, Tambor metálico, Handpan, Vibráfono, Órgano, Organillero, Piano, Arpegio menor, Escalera infinita, Guitarra rasgueada, Guitarra eléctrica, Arpa, Koto, Violín, Gaita, Kazoo, Theremin, Didyeridú, Coro |
-| Estilos y ritmos | Videojuego de 8 bits, Cumbia, Mariachi, Trance, Bajo ácido, Dembow, Batucada, Taiko, Cencerro, Palmas flamencas, Redoble militar, Caracol y teponaztli, Tambores y gong, Scratch de DJ |
-| Máquinas y calle | Locomotora de vapor, Carrito de camotes, Afilador, Helicóptero, Carrera de autos, Tragamonedas |
-| Animales y efectos | Pájaros eléctricos, Grillos, Gallo, Pájaro carpintero, Coro de ranas, Gato con hambre, Mosquito, Gotas en la cueva, Patito de hule, Resortes, Pelota que rebota, Subida sin fin, Fallo del sistema |
+| Beeps and signals | Classic beeps, High beeps, Digital clock, Beep storm, Morse: WAKE UP, Teletype, Sonar, Accelerating pulses, Lasers, Space alert, Chatty robot, Smoke detector, Reversing beeper, Walkie-talkie, Modem, Geiger counter |
+| Sirens, horns, and whistles | Slow siren, European siren, Wailing siren, Air-raid siren, Car alarm, Dive alarm, Car horn, Buzzer, Foghorn, Train horn, Referee whistle |
+| Bells, chimes, and clocks | Glass bells, Bell tower, Bell alarm clock, Old telephone, Music box, Railroad crossing, Doorbell, Cuckoo clock |
+| Instruments | Fanfare, Reveille, Muted trumpet, Nervous marimba, Steel drum, Handpan, Vibraphone, Organ, Barrel organ, Piano, Minor arpeggio, Endless staircase, Strummed guitar, Electric guitar, Harp, Koto, Violin, Bagpipes, Kazoo, Theremin, Didgeridoo, Choir |
+| Styles and rhythms | 8-bit video game, Cumbia, Mariachi, Trance, Acid bass, Dembow, Batucada, Taiko, Cowbell, Flamenco clapping, Military drum roll, Conch and teponaztli, Drums and gong, DJ scratch |
+| Machines and street | Steam locomotive, Sweet potato cart, Knife sharpener, Helicopter, Car race, Slot machine |
+| Animals and effects | Electric birds, Crickets, Rooster, Woodpecker, Frog chorus, Hungry cat, Mosquito, Cave drips, Rubber duck, Springs, Bouncing ball, Endless rise, System failure |
 
-Para escucharlos sin compilar la app: `make sounds` los genera como WAV en `build/sounds/` (solo necesita Python 3).
+The names above are translated; in the app they appear in Spanish.
 
-### El reto
-- Operaciones aleatorias que se van complicando a lo largo del reto: sumas, restas, multiplicaciones, sumas de tres números, series y combinaciones.
-- **Dificultad** (en los ajustes de la alarma), según cuántos dígitos tienen los números:
+To listen to them without building the app: `make sounds` generates them as WAV files in `build/sounds/` (it only needs Python 3).
 
-  | Dificultad | Ejemplos |
+### The challenge
+- Random operations that get harder as the challenge goes on: additions, subtractions, multiplications, three-number sums, sequences, and combinations.
+- **Difficulty** (in the alarm settings), based on how many digits the numbers have:
+
+  | Difficulty | Examples |
   |---|---|
-  | 1 dígito | `7 + 8`, `6 × 9`, `8 × 7 − 4 × 6` |
-  | 2 dígitos (la de siempre) | `47 + 38`, `6 × 23`, `7 × 13 − 25` |
-  | 3 dígitos | `347 + 285`, `6 × 135`, `7 × 124 − 358` |
+  | 1 digit | `7 + 8`, `6 × 9`, `8 × 7 − 4 × 6` |
+  | 2 digits (the default) | `47 + 38`, `6 × 23`, `7 × 13 − 25` |
+  | 3 digits | `347 + 285`, `6 × 135`, `7 × 124 − 358` |
 
-- **Duración** (también en los ajustes de la alarma): hay que acumular **de 15 segundos a 10 minutos** (1 minuto es la de siempre). La duración solo cambia cuánto tiempo hay que acumular: las reglas son las mismas y las operaciones se van complicando a lo largo de todo el reto.
-- Después de cada respuesta correcta el reloj corre 15 s (25 s con 3 dígitos, que tardan más); si no vuelves a acertar en ese tiempo se pausa. No se puede completar esperando.
-- Un error resta 5 s; saltar una operación también.
-- Si te quedas ese mismo tiempo sin acertar (15 s, o 25 s con 3 dígitos), **la alarma vuelve a sonar dentro de la app**, a todo volumen, hasta tu siguiente respuesta correcta (ver [El volumen](#el-volumen)). El reto para desbloquear los ajustes y el de desactivarla antes no suenan.
-- Si sales de la app el reto empieza de cero, y si la cierras, la alarma vuelve a sonar en poco más de un minuto.
+- **Duration** (also in the alarm settings): you have to accumulate **15 seconds to 10 minutes** (1 minute is the default). The duration only changes how much time you have to accumulate: the rules are the same and the operations keep getting harder throughout the whole challenge.
+- After each correct answer the clock runs for 15 s (25 s with 3 digits, which take longer); if you don't answer correctly again within that time it pauses. It can't be completed by waiting.
+- A mistake subtracts 5 s; skipping an operation does too.
+- If you go that same amount of time without a correct answer (15 s, or 25 s with 3 digits), **the alarm rings again inside the app**, at full volume, until your next correct answer (see [Volume](#volume)). The challenge to unlock the settings and the one to turn the alarm off early don't ring.
+- If you leave the app the challenge starts over, and if you close it, the alarm rings again in a little over a minute.
 
-### El volumen
-Hay dos volúmenes distintos y la app solo puede controlar uno:
+### Volume
+There are two different volumes and the app can only control one:
 
-| Cuándo | Qué volumen usa | ¿La app lo puede subir? |
+| When | Which volume it uses | Can the app raise it? |
 |---|---|---|
-| La alarma de AlarmKit (pantalla bloqueada, Dynamic Island, cada repetición) | **Tono y alertas** de iOS | ❌ No. Apple no da ninguna API para eso ([lo confirma un ingeniero de Apple](https://developer.apple.com/forums/thread/821315)). |
-| Dentro de la app, cuando la alarma vuelve a sonar durante el reto | El de la música y los videos | ✅ Sí: lo sube al máximo |
+| The AlarmKit alarm (lock screen, Dynamic Island, every repeat) | iOS **Ringtone and Alerts** | ❌ No. Apple provides no API for that ([confirmed by an Apple engineer](https://developer.apple.com/forums/thread/821315)). |
+| Inside the app, when the alarm rings again during the challenge | Music and video volume | ✅ Yes: it raises it to the maximum |
 
-**Por qué a veces solo vibra:** con **«Cambiar con botones»** activado (Ajustes › Sonidos y vibración), los botones de volumen cambian el de tono y alertas cuando no está sonando nada, así que al bajar el volumen de la música también bajas el de la alarma. En lo más bajo, la alarma vibra y se ve en la pantalla, pero casi no se oye. Para que siempre suene fuerte, en **Ajustes › Sonidos y vibración**:
-1. Desactiva **«Cambiar con botones»**: los botones ya solo cambian el volumen de la música y los videos.
-2. Sube al máximo el volumen de **tono y alertas**.
-3. En **iOS 27**, la sección **«Alarmas y temporizadores»** permite darles a las alarmas su propio volumen, independiente del tono. Si lo activas, súbelo también al máximo. No hay documentación de si AlarmKit lo respeta, así que compruébalo con la prueba.
-4. Toca **Probar**, bloquea el iPhone y comprueba que se oye fuerte.
+**Why it sometimes only vibrates:** with **"Change with Buttons"** on (Settings › Sounds & Haptics), the volume buttons change the ringtone and alerts volume when nothing is playing, so lowering the music volume also lowers the alarm's. At its lowest, the alarm vibrates and shows on screen, but can barely be heard. To make it always ring loudly, in **Settings › Sounds & Haptics**:
+1. Turn off **"Change with Buttons"**: the buttons then only change the music and video volume.
+2. Raise the **Ringtone and Alerts** volume to the maximum.
+3. On **iOS 27**, the **"Alarms and Timers"** section lets alarms have their own volume, independent of the ringtone. If you turn it on, raise it to the maximum too. There is no documentation on whether AlarmKit respects it, so check it with the test.
+4. Tap **«Probar»** ("Test"), lock the iPhone, and check that it sounds loud.
 
-La app explica esto mismo en **Volumen de la alarma**, en la pantalla principal.
+The app explains the same thing in **«Volumen de la alarma»** ("Alarm volume"), on the main screen.
 
-**Dentro de la app:** durante el reto de la alarma, si te quedas 15 s sin acertar (25 s con 3 dígitos), Vigilia vuelve a tocar el sonido del día y **sube el volumen del iPhone al máximo**; si lo bajas con los botones, lo vuelve a subir. En cuanto aciertas deja de sonar y regresa el volumen a como estaba; si vuelves a quedarte sin acertar, vuelve a sonar. Ignora el modo silencio. Detalles:
-- Solo sube el volumen en la **bocina del iPhone**. Con audífonos o una bocina Bluetooth conectada suena por ahí, al volumen que tengas, para no lastimarte los oídos.
-- iOS no tiene una API para cambiar el volumen: Vigilia mueve el control de un `MPVolumeView` oculto ([`src/App/SystemVolume.swift`](src/App/SystemVolume.swift)), el truco que usan las apps de alarma desde hace años. Si una versión de iOS lo rompiera, la alarma seguiría sonando dentro de la app, pero al volumen que tengas.
-- Si una alarma de AlarmKit o una llamada interrumpe el sonido, vuelve a empezar solo.
+**Inside the app:** during the alarm challenge, if you go 15 s without a correct answer (25 s with 3 digits), Vigilia plays the day's sound again and **raises the iPhone volume to the maximum**; if you lower it with the buttons, it raises it again. As soon as you answer correctly it stops playing and restores the volume to where it was; if you again go without a correct answer, it plays again. It ignores silent mode. Details:
+- It only raises the volume on the **iPhone speaker**. With headphones or a Bluetooth speaker connected it plays through them, at whatever volume you have, so it doesn't hurt your ears.
+- iOS has no API to change the volume: Vigilia moves the slider of a hidden `MPVolumeView` ([`src/App/SystemVolume.swift`](src/App/SystemVolume.swift)), the trick alarm apps have used for years. If a version of iOS broke it, the alarm would still ring inside the app, but at whatever volume you have.
+- If an AlarmKit alarm or a call interrupts the sound, it restarts on its own.
 
-### Desactivarla antes de que suene
-Si ya estás despierto, desde **3 horas antes** de la hora de la alarma aparece en **Próxima alarma** el botón **«Desactivarla con el reto de 1 minuto»** (o de los minutos que hayas elegido). Es el mismo reto que harías al sonar (misma dificultad, misma duración y mismas reglas, aunque aquí lo puedes cancelar) y, al completarlo:
-- Esa alarma ya no suena ni vuelve a sonar: se cancelan también sus repeticiones.
-- **Solo se desactiva esa vez.** Las de los otros días siguen igual y ese mismo día de la semana vuelve a sonar la semana siguiente (mientras tanto la app muestra la alarma como «Desactivada»).
-- No cuenta en las estadísticas, porque no sonó.
-- No desbloquea los ajustes. Si después cambias la hora de ese día, la nueva hora sí suena.
+### Turning it off before it rings
+If you're already awake, starting **3 hours before** the alarm time, **«Próxima alarma»** ("Next alarm") shows the button **«Desactivarla con el reto de 1 minuto»** ("Turn it off with the 1-minute challenge") (or however many minutes you chose). It is the same challenge you'd do when it rings (same difficulty, same duration, and same rules, although here you can cancel it) and, when you complete it:
+- That alarm no longer rings or rings again: its repeats are cancelled too.
+- **It is only turned off that once.** The other days' alarms stay the same and that same weekday rings again the following week (in the meantime the app shows the alarm as «Desactivada», "Turned off").
+- It doesn't count in the statistics, because it didn't ring.
+- It doesn't unlock the settings. If you then change that day's time, the new time does ring.
 
-No se puede usar mientras una alarma (o la prueba) está sonando o tiene el reto pendiente, ni en los últimos 20 segundos antes de que suene.
+It can't be used while an alarm (or the test) is ringing or has its challenge pending, nor in the last 20 seconds before it rings.
 
-Por dentro: como una alarma semanal de AlarmKit no puede saltarse una semana, la de ese día se reemplaza por una alarma única para la semana siguiente; cuando ya pasó la hora desactivada, la app vuelve a ponerla semanal.
+Under the hood: since a weekly AlarmKit alarm can't skip a week, that day's alarm is replaced by a one-time alarm for the following week; once the turned-off time has passed, the app makes it weekly again.
 
-### Cambiar siguiente alarma
-En la sección **Alarma**, **«Cambiar siguiente alarma»** pone otra hora solo para la próxima alarma, sea hoy, mañana o dentro de varios días, sin tocar los demás días:
-- Si la próxima suena el lunes a las 8:00, puedes cambiarla a las 9:00: ese lunes solo suena a las 9:00 y la de las 8:00 no.
-- Al activarlo empieza con la hora de siempre de esa alarma; los días siguientes suenan como siempre.
-- Funciona como cualquier alarma: no se puede posponer, vuelve a sonar hasta completar el reto y se puede desactivar antes.
-- Forma parte de los ajustes, así que también queda bloqueada si los cambios están bloqueados.
+### Changing the next alarm
+In the **«Alarma»** ("Alarm") section, **«Cambiar siguiente alarma»** ("Change next alarm") sets a different time just for the next alarm, whether it's today, tomorrow, or several days away, without touching the other days:
+- If the next one rings on Monday at 8:00, you can change it to 9:00: that Monday it only rings at 9:00 and the 8:00 one doesn't ring.
+- When turned on it starts with that alarm's usual time; the following days ring as usual.
+- It works like any alarm: it can't be snoozed, it rings again until you complete the challenge, and it can be turned off early.
+- It's part of the settings, so it's also locked if changes are locked.
 
-Por dentro es una alarma única de AlarmKit; la semanal de ese día se reemplaza por una única para la semana siguiente, igual que al desactivarla antes.
+Under the hood it's a one-time AlarmKit alarm; that day's weekly alarm is replaced by a one-time alarm for the following week, just like when turning it off early.
 
-### Ajustes bloqueados
-El interruptor **«Bloquear cambios»** (activado por defecto) decide si los ajustes se bloquean. Desactivado, nunca se bloquean y puedes cambiar o apagar la alarma sin el reto. Para desactivarlo con los ajustes ya bloqueados hay que desbloquearlos primero; al volver a activarlo tienes 5 minutos antes de que se bloqueen.
+### Locked settings
+The **«Bloquear cambios»** ("Lock changes") toggle (on by default) decides whether the settings get locked. When off, they never lock and you can change or turn off the alarm without the challenge. To turn it off while the settings are already locked you have to unlock them first; when you turn it back on you have 5 minutes before they lock.
 
-Con el bloqueo activado, mientras la alarma está activada, **cambiar la hora, los días, la dificultad o la duración del reto, o desactivarla, también exige el reto** (luego quedan desbloqueados 5 minutos). El reto para desbloquear usa la dificultad que ya tenías, pero siempre dura 1 minuto, sea cual sea la duración elegida para la alarma. Así no puedes apagarla medio dormido desde los ajustes. Activarla es libre y, al hacerlo, tienes 5 minutos para ajustar la hora, los días, la dificultad y la duración antes de que se bloquee.
+With locking on, while the alarm is on, **changing the time, the days, the challenge difficulty or duration, or turning it off also requires the challenge** (afterwards they stay unlocked for 5 minutes). The unlock challenge uses the difficulty you already had, but it always lasts 1 minute, whatever duration you chose for the alarm. That way you can't turn it off half-asleep from the settings. Turning it on is free and, when you do, you have 5 minutes to adjust the time, days, difficulty, and duration before it locks.
 
-**Mientras la alarma está sonando** (o ya sonó y el reto sigue pendiente, incluida la prueba), cualquier cambio de hora, días, dificultad, duración del reto o del interruptor **se ignora**, aunque los ajustes estén desbloqueados. Así cambiar la hora no puede silenciarla ni hacer que deje de volver: solo el reto la apaga.
+**While the alarm is ringing** (or has already rung and the challenge is still pending, including the test), any change to the time, days, difficulty, challenge duration, or the toggle **is ignored**, even if the settings are unlocked. That way changing the time can't silence it or stop it from coming back: only the challenge turns it off.
 
-### Estadísticas
-En **Estadísticas** (pantalla principal) eliges tres cosas, independientes entre sí, y cualquier combinación funciona:
+### Statistics
+In **«Estadísticas»** ("Statistics", on the main screen) you choose three things, independent of one another, and any combination works:
 
-| Opción | Valores |
+| Option | Values |
 |---|---|
-| Estadística | **Resumen** (promedio y percentiles) o **gráficas** de cómo han cambiado |
-| Por | **Día de la semana** (un promedio o una línea por día) o **toda la semana** |
-| Contando | **Siempre**, **1 año**, **1 mes** o **1 semana** (hacia atrás desde hoy) |
+| Statistic | **Summary** (average and percentiles) or **charts** of how they have changed |
+| By | **Weekday** (one average or one line per day) or **whole week** |
+| Counting | **All time**, **1 year**, **1 month**, or **1 week** (back from today) |
 
-- Cada despertar tiene tres datos:
-  - **Hora en que sonó:** la primera vez que sonó la alarma, sin contar cuando vuelve a sonar.
-  - **Hora en que la apagaste:** cuando completaste el reto.
-  - **Tiempo en apagarla:** desde que sonó por primera vez hasta que completaste el reto.
-- Las pruebas no cuentan, ni las alarmas desactivadas antes de sonar.
-- El **resumen** muestra cuántos despertares hay y, para cada dato, el promedio y tres percentiles, cada uno con su explicación en la pantalla:
-  - **Percentil 10:** 1 de cada 10 días fue a esa hora o antes (o tardaste ese tiempo o menos).
-  - **Percentil 50 (mediana):** la mitad de los días.
-  - **Percentil 90:** 9 de cada 10 días.
-- Por día de la semana, cada día muestra los tres promedios; tócalo para ver sus percentiles.
-- Las horas manejan bien la medianoche: 23:50 y 0:10 dan 0:00, no mediodía.
-- **Gráficas:** una por dato. Muestran cada despertar en periodos cortos y promedios semanales o mensuales en periodos largos. Mantén el dedo sobre una para ver cada valor; «Ver datos» muestra la tabla con los tres datos.
-- Se guardan unos 10 años de despertares (antes solo se guardaban los últimos 30).
+- Each wake-up has three data points:
+  - **Time it rang:** the first time the alarm rang, not counting when it rings again.
+  - **Time you turned it off:** when you completed the challenge.
+  - **Time to turn it off:** from when it first rang until you completed the challenge.
+- Tests don't count, nor do alarms turned off before ringing.
+- The **summary** shows how many wake-ups there are and, for each data point, the average and three percentiles, each with its explanation on screen:
+  - **10th percentile:** 1 in 10 days was at that time or earlier (or you took that long or less).
+  - **50th percentile (median):** half of the days.
+  - **90th percentile:** 9 in 10 days.
+- By weekday, each day shows the three averages; tap it to see its percentiles.
+- Times handle midnight correctly: 23:50 and 0:10 average to 0:00, not noon.
+- **Charts:** one per data point. They show each wake-up for short periods and weekly or monthly averages for long periods. Hold your finger on one to see each value; «Ver datos» ("See data") shows the table with the three data points.
+- About 10 years of wake-ups are kept (previously only the last 30 were kept).
 
-### Botón «Probar»
-Programa una alarma de prueba en 1 minuto que se comporta igual que la real (repeticiones incluidas). Bloquea el iPhone para verla como se verá en la mañana.
+### «Probar» ("Test") button
+Schedules a test alarm in 1 minute that behaves just like the real one (repeats included). Lock the iPhone to see it as it will look in the morning.
 
-### Lo que iOS no deja hacer (para que no te sorprenda)
-- **El control de "Detener" de iOS no se puede quitar** y los botones físicos detienen la alarma. Por eso la estrategia es que regrese, no que sea imposible tocarla.
-- **El volumen de la alarma de AlarmKit lo pone iOS** (tono y alertas), no la app. Si está bajo, la alarma con el iPhone bloqueado suena bajo o solo vibra. Ver [El volumen](#el-volumen).
-- **Desinstalar la app o quitarle el permiso de Alarmas** (Ajustes › Vigilia) sí la apaga. Ninguna app puede impedirlo.
-- Los sonidos personalizados de AlarmKit deben durar **menos de 30 s** y, según reportes de otros desarrolladores, pueden sonar una sola vez en lugar de repetirse. Por eso cada sonido dura 28 s y la alarma vuelve a sonar cada minuto.
-- Apple indica que las apps **ocultas o bloqueadas con Face ID** no pueden usar AlarmKit: no ocultes ni bloquees Vigilia.
-- Si la **firma vence** (7 días con un Apple ID gratuito; hasta un año con la firma Ad Hoc de GitHub Actions), la app no abre: las alarmas siguen sonando, pero no podrías hacer el reto. La app te muestra cuándo vence la firma y te avisa 2 días antes.
-- Las repeticiones duran una hora (dos si sigues deteniéndola) para que, si dejas el teléfono en casa, no suene todo el día.
+### What iOS doesn't allow (so it doesn't surprise you)
+- **The iOS "Stop" control can't be removed** and the hardware buttons stop the alarm. That's why the strategy is to make it come back, not to make it impossible to touch.
+- **The AlarmKit alarm volume is set by iOS** (Ringtone and Alerts), not by the app. If it's low, the alarm with the iPhone locked rings quietly or only vibrates. See [Volume](#volume).
+- **Uninstalling the app or removing its Alarms permission** (Settings › Vigilia) does turn it off. No app can prevent that.
+- AlarmKit custom sounds must last **less than 30 s** and, according to reports from other developers, may play only once instead of repeating. That's why each sound lasts 28 s and the alarm rings again every minute.
+- Apple states that apps **hidden or locked with Face ID** can't use AlarmKit: don't hide or lock Vigilia.
+- If the **signature expires** (7 days with a free Apple ID; up to a year with the GitHub Actions Ad Hoc signature), the app doesn't open: the alarms still ring, but you couldn't do the challenge. The app shows you when the signature expires and warns you 2 days before.
+- Repeats last one hour (two if you keep stopping it) so that, if you leave your phone at home, it doesn't ring all day.
 
 ---
 
-## Compilar
+## Building
 
-### Opción 1: GitHub Actions (no necesitas Mac)
+### Option 1: GitHub Actions (no Mac needed)
 
-El workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) corre en un Mac de GitHub (`macos-15`, con el Xcode 26 más reciente que tenga instalado) en cada push a cualquier rama salvo `gh-pages`, y también se puede lanzar a mano (*Run workflow*). Ningún build cancela a otro: los de `main` se ejecutan uno tras otro (para que cada uno reciba su número de versión) y los de las demás ramas en paralelo.
+The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) runs on a GitHub Mac (`macos-15`, with the most recent Xcode 26 it has installed) on every push to any branch except `gh-pages`, and it can also be started manually (*Run workflow*). No build cancels another: `main` builds run one after another (so each one gets its version number) and builds for other branches run in parallel.
 
-1. Elige la etiqueta (ver abajo) y los identificadores:
-   - **Bundle ID:** siempre `com.leonardoramirezr.leoneraalarm` (fijo en `project.yml`, `build.sh` y el workflow; no depende del repositorio ni de variables).
-   - **Extensiones** (si algún día se agregan): `<bundle>.<sufijo>`, por ejemplo `com.leonardoramirezr.leoneraalarm.widget`.
-2. Ejecuta las pruebas de lógica (`make test`).
-3. Genera los sonidos y el proyecto de Xcode (`make project`, con XcodeGen).
-4. Comprueba la clave de App Store Connect y que haya al menos un dispositivo iOS registrado ([`scripts/asc.py`](scripts/asc.py)).
-5. Hace el *archive* con **firma automática** (`-allowProvisioningUpdates` y la clave de la API): Xcode crea o actualiza el App ID y los perfiles.
-6. Exporta la IPA **Ad Hoc** (`method=release-testing`): usa el certificado de distribución gestionado en la nube por Apple y un perfil Ad Hoc con todos los dispositivos registrados. Después comprueba que cada bundle tiene un perfil Ad Hoc vigente y una firma válida, y avisa si algún iPhone registrado no está en el perfil ([`scripts/verify-ipa.py`](scripts/verify-ipa.py)).
-7. La publica en **GitHub Pages** ([`scripts/publish-pages.sh`](scripts/publish-pages.sh)) y como **Release**, y la sube como artefacto.
-8. Al terminar (aunque algo haya fallado), **revoca el certificado de desarrollo temporal** que `xcodebuild` crea en cada ejecución: solo los certificados «Apple Development» nuevos en el llavero del runner, nunca los que ya tenías.
+1. Picks the label (see below) and the identifiers:
+   - **Bundle ID:** always `com.leonardoramirezr.leoneraalarm` (fixed in `project.yml`, `build.sh`, and the workflow; it doesn't depend on the repository or on variables).
+   - **Extensions** (if any are ever added): `<bundle>.<suffix>`, for example `com.leonardoramirezr.leoneraalarm.widget`.
+2. Runs the logic tests (`make test`).
+3. Generates the sounds and the Xcode project (`make project`, with XcodeGen).
+4. Checks the App Store Connect key and that at least one iOS device is registered ([`scripts/asc.py`](scripts/asc.py)).
+5. Archives with **automatic signing** (`-allowProvisioningUpdates` and the API key): Xcode creates or updates the App ID and the profiles.
+6. Exports the **Ad Hoc** IPA (`method=release-testing`): it uses the distribution certificate managed in the cloud by Apple and an Ad Hoc profile with all registered devices. Then it checks that each bundle has a valid Ad Hoc profile and a valid signature, and warns if any registered iPhone is not in the profile ([`scripts/verify-ipa.py`](scripts/verify-ipa.py)).
+7. Publishes it on **GitHub Pages** ([`scripts/publish-pages.sh`](scripts/publish-pages.sh)) and as a **Release**, and uploads it as an artifact.
+8. When it finishes (even if something failed), it **revokes the temporary development certificate** that `xcodebuild` creates on each run: only new "Apple Development" certificates in the runner's keychain, never the ones you already had.
 
-Etiquetas:
-- **`main` → `0.x.0`** (`0.1.0`, `0.2.0`, `0.3.0`…): cada push a `main` sube el número del medio en 1. Es la versión estable, marcada como *Latest*.
-- **Cualquier otra rama → `build-<N>-<commit>`** (por ejemplo `build-2-c1e51fa`): `<N>` es el número de ejecución del workflow y `<commit>` los 7 primeros caracteres del hash. Se publica como pre-release, nunca como *Latest*.
+Labels:
+- **`main` → `0.x.0`** (`0.1.0`, `0.2.0`, `0.3.0`…): each push to `main` bumps the middle number by 1. It's the stable version, marked as *Latest*.
+- **Any other branch → `build-<N>-<commit>`** (for example `build-2-c1e51fa`): `<N>` is the workflow run number and `<commit>` the first 7 characters of the hash. It's published as a pre-release, never as *Latest*.
 
-#### Secrets (firma)
+#### Secrets (signing)
 
-En *Settings › Secrets and variables › Actions › Secrets* **del repositorio** (no de una organización: este repositorio es personal):
+In the **repository's** *Settings › Secrets and variables › Actions › Secrets* (not an organization's: this repository is personal):
 
-| Secret | Contenido |
+| Secret | Contents |
 |---|---|
-| `ASC_KEY_ID` | Key ID de la clave de la API de App Store Connect |
+| `ASC_KEY_ID` | Key ID of the App Store Connect API key |
 | `ASC_ISSUER_ID` | Issuer ID |
-| `ASC_KEY_P8` | Contenido completo del archivo `AuthKey_XXXX.p8` |
-| `APPLE_TEAM_ID` | Team ID de la cuenta de Apple Developer |
+| `ASC_KEY_P8` | Full contents of the `AuthKey_XXXX.p8` file |
+| `APPLE_TEAM_ID` | Team ID of the Apple Developer account |
 
-La clave debe ser una **Team Key con rol Admin** (App Store Connect › Usuarios y acceso › Integraciones): la necesita el certificado de distribución gestionado en la nube. Los UDID de los iPhone se registran en [Apple Developer › Devices](https://developer.apple.com/account/resources/devices/list); después de registrar uno nuevo, el siguiente build ya lo incluye.
+The key must be a **Team Key with the Admin role** (App Store Connect › Users and Access › Integrations): the cloud-managed distribution certificate needs it. iPhone UDIDs are registered in [Apple Developer › Devices](https://developer.apple.com/account/resources/devices/list); after registering a new one, the next build already includes it.
 
-- **Con los cuatro secrets:** IPA firmada Ad Hoc, publicada en GitHub Pages y en Releases.
-- **Sin ninguno:** IPA **sin firmar** (como antes, para Sideloadly, AltStore o SideStore), solo en Releases y en Artifacts.
-- **Con solo algunos:** el build falla e indica cuáles faltan.
+- **With all four secrets:** Ad Hoc signed IPA, published on GitHub Pages and in Releases.
+- **With none:** **unsigned** IPA (as before, for Sideloadly, AltStore, or SideStore), only in Releases and Artifacts.
+- **With only some:** the build fails and says which ones are missing.
 
-#### Configuración manual, una sola vez: GitHub Pages
+#### One-time manual setup: GitHub Pages
 
-*Settings › Pages › Build and deployment*: **Source: Deploy from a branch**, rama **`gh-pages`**, carpeta **`/ (root)`** › *Save*. La rama `gh-pages` la crea el primer build firmado; si todavía no aparece en la lista, espera a que termine y vuelve a esta pantalla.
+*Settings › Pages › Build and deployment*: **Source: Deploy from a branch**, branch **`gh-pages`**, folder **`/ (root)`** › *Save*. The `gh-pages` branch is created by the first signed build; if it doesn't show up in the list yet, wait for it to finish and come back to this screen.
 
-#### Página de instalación
+#### Install page
 
-`https://leonardoramirezr.github.io/vigilia-ios/` (o el dominio configurado en Pages):
-- La portada lista todos los builds y tiene un botón para instalar la **última versión estable**.
-- Cada build tiene su carpeta (`/0.3.0/`, `/build-41-c1e51fa/`) con la IPA, `manifest.plist`, `build.json` y su propia página con el botón de instalar (`itms-services://`).
-- `gh-pages` se reescribe en cada publicación como **un único commit** (las IPA viejas no se acumulan en el historial). Se guardan **todas las versiones de `main`** y los **últimos 50 builds** de otras ramas. Cada IPA pesa unos 17 MB y GitHub Pages admite sitios de hasta 1 GB, así que con muchas versiones de `main` conviene bajar `KEEP_BRANCH_BUILDS` en el workflow.
+`https://leonardoramirezr.github.io/vigilia-ios/` (or the domain configured in Pages):
+- The home page lists all builds and has a button to install the **latest stable version**.
+- Each build has its own folder (`/0.3.0/`, `/build-41-c1e51fa/`) with the IPA, `manifest.plist`, `build.json`, and its own page with the install button (`itms-services://`).
+- `gh-pages` is rewritten on every publish as **a single commit** (old IPAs don't pile up in the history). **All `main` versions** and the **last 50 builds** of other branches are kept. Each IPA weighs about 17 MB and GitHub Pages allows sites up to 1 GB, so with many `main` versions it's worth lowering `KEEP_BRANCH_BUILDS` in the workflow.
 
-Otras formas de descargar la IPA: el Release de cada build (la estable más reciente está en `https://github.com/leonardoramirezr/vigilia-ios/releases/latest/download/Vigilia.ipa`) o *Actions* › la ejecución › *Artifacts* › `Vigilia-ipa`.
+Other ways to download the IPA: each build's Release (the most recent stable one is at `https://github.com/leonardoramirezr/vigilia-ios/releases/latest/download/Vigilia.ipa`) or *Actions* › the run › *Artifacts* › `Vigilia-ipa`.
 
-El repositorio es público, así que los minutos de Mac en GitHub Actions no cuestan nada.
+The repository is public, so Mac minutes on GitHub Actions cost nothing.
 
-### Opción 2: script local (Mac)
+### Option 2: local script (Mac)
 
-Requisitos:
-- Una Mac con **Xcode 26 o posterior instalado** (gratis en la App Store). No hace falta abrirlo, ni crear proyecto, ni tener cuenta de desarrollador.
-- Que la línea de comandos apunte a Xcode: `sudo xcode-select -s /Applications/Xcode.app`
+Requirements:
+- A Mac with **Xcode 26 or later installed** (free on the App Store). You don't need to open it, create a project, or have a developer account.
+- The command line pointing to Xcode: `sudo xcode-select -s /Applications/Xcode.app`
 
 ```sh
-make test     # pruebas de la lógica (rotación de sonidos, reto, horarios)
-make build    # genera build/Vigilia.app y build/Vigilia.ipa
+make test     # logic tests (sound rotation, challenge, schedules)
+make build    # generates build/Vigilia.app and build/Vigilia.ipa
 make clean
 ```
 
-`build.sh` hace lo mismo que Xcode, paso a paso y a la vista:
-1. Compila todo `src/` con `swiftc` para `arm64-apple-ios26.0`.
-2. Extrae los metadatos de App Intents (`appintentsmetadataprocessor`), que iOS necesita para los botones de la alarma.
-3. Arma el `Info.plist` y compila el ícono con `actool`.
-4. Genera los sonidos (`scripts/generate_sounds.py`, solo la primera vez) y los convierte a CAF con `afconvert`.
-5. Empaqueta `Payload/Vigilia.app` en `build/Vigilia.ipa`.
+`build.sh` does the same as Xcode, step by step and in plain sight:
+1. Compiles all of `src/` with `swiftc` for `arm64-apple-ios26.0`.
+2. Extracts the App Intents metadata (`appintentsmetadataprocessor`), which iOS needs for the alarm buttons.
+3. Assembles the `Info.plist` and compiles the icon with `actool`.
+4. Generates the sounds (`scripts/generate_sounds.py`, only the first time) and converts them to CAF with `afconvert`.
+5. Packages `Payload/Vigilia.app` into `build/Vigilia.ipa`.
 
-Variables opcionales: `BUNDLE_ID=com.tunombre.vigilia make build`, `VERSION=1.1`, `BUILD_NUMBER=2`.
+Optional variables: `BUNDLE_ID=com.yourname.vigilia make build`, `VERSION=1.1`, `BUILD_NUMBER=2`.
 
-Para abrirlo o compilarlo con Xcode: `brew install xcodegen` y `make project`, que genera `Vigilia.xcodeproj` (no se guarda en el repositorio).
+To open or build it with Xcode: `brew install xcodegen` and `make project`, which generates `Vigilia.xcodeproj` (it isn't saved in the repository).
 
-### ¿Y sin Xcode instalado?
+### What about without Xcode installed?
 
-No se puede, y no es por la plantilla: el SDK de iOS (SwiftUI para iPhone, AlarmKit, etc.), `actool` y el procesador de App Intents **solo se distribuyen dentro de Xcode.app**. Las *Command Line Tools* traen únicamente el SDK de macOS, que es por lo que la plantilla original funcionaba sin Xcode y una app de iPhone no. La salida es justamente la Opción 1: los Mac de GitHub ya tienen Xcode, tú solo haces push.
-
----
-
-## Instalar desde Safari (Ad Hoc)
-
-Para los iPhone registrados en la cuenta de Apple Developer (ver [Secrets](#secrets-firma)):
-
-1. En el iPhone, abre en **Safari** `https://leonardoramirezr.github.io/vigilia-ios/`.
-2. Toca **Instalar la última versión estable** (o el build que quieras) y confirma. La app aparece en la pantalla de inicio.
-3. La primera vez: Ajustes › Privacidad y seguridad › **Modo de desarrollador** › activar y reiniciar (iOS lo exige para las apps Ad Hoc). No hay que «confiar» en ningún perfil.
-4. Sigue con [Primer arranque en el iPhone](#primer-arranque-en-el-iphone) desde el paso 3.
-
-Para actualizar, instala el build nuevo encima: se conservan las alarmas y las estadísticas. Si Safari dice que no se puede instalar, casi siempre es que el iPhone no estaba registrado cuando se compiló ese build: regístralo y vuelve a lanzar el workflow.
-
-## Instalarla en tu iPhone sin pagar la suscripción
-
-Con un **Apple ID gratuito** puedes firmar apps para tus propios dispositivos. Las herramientas de abajo firman la IPA por ti; no necesitas Xcode. Ninguna de estas herramientas es de Apple.
-
-**Límites de la cuenta gratuita:**
-- La firma **dura 7 días**. Después la app no abre hasta que la renueves. Renovar no borra tus datos: **no desinstales la app**, solo vuelve a firmarla o refréscala.
-- Máximo **3 apps** firmadas así a la vez (AltStore y SideStore ocupan uno de esos lugares).
-- Máximo 10 App IDs nuevos por semana.
-- Necesitas una computadora con **Windows o macOS** al menos para la primera instalación.
-
-**Requisitos en el iPhone:** iOS 26 o posterior y código de desbloqueo activado.
-
-### Opción A: Sideloadly (la más sencilla)
-
-1. Instala [Sideloadly](https://sideloadly.io) en Windows o Mac. En Windows instala también **iTunes y iCloud descargados de la web de Apple** (no las versiones de la Microsoft Store).
-2. Descarga `Vigilia.ipa` (ver [Compilar](#compilar)).
-3. Conecta el iPhone por cable, desbloquéalo y toca **Confiar en esta computadora**.
-4. Arrastra `Vigilia.ipa` a Sideloadly, escribe tu Apple ID y pulsa **Start**. Te pedirá la contraseña y el código de verificación. Si quieres, crea un Apple ID nuevo solo para esto.
-5. Sigue con [Primer arranque en el iPhone](#primer-arranque-en-el-iphone).
-6. **Cada 7 días** repite el paso 4 (sin borrar la app). Si tu versión de Sideloadly ofrece el *refresco automático*, actívalo: renueva la firma solo mientras la computadora esté encendida y el iPhone sea alcanzable por Wi-Fi o cable (activa la sincronización por Wi-Fi en iTunes o Finder).
-
-### Opción B: AltStore Classic
-
-1. Instala **AltServer** desde [altstore.io](https://altstore.io) en tu Windows o Mac y, con él, instala **AltStore** en el iPhone usando tu Apple ID.
-2. Pasa `Vigilia.ipa` al iPhone (AirDrop, la app Archivos o descargándola desde Releases en Safari).
-3. En AltStore: **My Apps › +** y elige la IPA.
-4. AltStore renueva la firma automáticamente cuando el iPhone y la computadora con AltServer están en la misma red Wi-Fi.
-
-### Opción C: SideStore (renovar sin computadora)
-
-[SideStore](https://docs.sidestore.io) es una variante de AltStore que, después de una configuración inicial con computadora, **renueva las apps desde el propio iPhone** usando una VPN local (LocalDevVPN, en la App Store). Es la opción más cómoda a diario pero la más laboriosa de instalar; sigue la [guía oficial](https://docs.sidestore.io/docs/installation/prerequisites). Ten en cuenta que al actualizar iOS puede pedirte regenerar el archivo de emparejamiento con la computadora.
-
-### Primer arranque en el iPhone
-
-1. **Modo de desarrollador:** Ajustes › Privacidad y seguridad › **Modo de desarrollador** › activar y reiniciar. (La opción aparece después del primer intento de instalar una app así.)
-2. **Confiar en tu Apple ID:** Ajustes › General › **VPN y gestión de dispositivos** › tu Apple ID › Confiar.
-3. Abre **Vigilia** y toca **Permitir alarmas**.
-4. Activa la alarma, elige los días y la hora (o desactiva «Misma hora todos los días» para poner una hora distinta a cada día).
-5. Toca **Probar: sonará en 1 minuto**, bloquea el iPhone y comprueba que suena, que no se puede posponer y que solo se apaga con el reto.
+It's not possible, and it's not because of the template: the iOS SDK (SwiftUI for iPhone, AlarmKit, etc.), `actool`, and the App Intents processor **are only distributed inside Xcode.app**. The *Command Line Tools* only include the macOS SDK, which is why the original template worked without Xcode and an iPhone app doesn't. The way out is exactly Option 1: GitHub's Macs already have Xcode, you just push.
 
 ---
 
-## Personalizar
+## Install from Safari (Ad Hoc)
 
-| Qué | Dónde |
+For the iPhones registered in the Apple Developer account (see [Secrets](#secrets-signing)):
+
+1. On the iPhone, open `https://leonardoramirezr.github.io/vigilia-ios/` in **Safari**.
+2. Tap **«Instalar la última versión estable»** ("Install the latest stable version") (or the build you want) and confirm. The app appears on the home screen.
+3. The first time: Settings › Privacy & Security › **Developer Mode** › turn on and restart (iOS requires it for Ad Hoc apps). You don't need to "trust" any profile.
+4. Continue with [First launch on the iPhone](#first-launch-on-the-iphone) from step 3.
+
+To update, install the new build on top: alarms and statistics are kept. If Safari says it can't be installed, it's almost always because the iPhone wasn't registered when that build was compiled: register it and run the workflow again.
+
+## Installing it on your iPhone without paying for the subscription
+
+With a **free Apple ID** you can sign apps for your own devices. The tools below sign the IPA for you; you don't need Xcode. None of these tools are made by Apple.
+
+**Free account limits:**
+- The signature **lasts 7 days**. After that the app doesn't open until you renew it. Renewing doesn't erase your data: **don't uninstall the app**, just sign it again or refresh it.
+- At most **3 apps** signed this way at a time (AltStore and SideStore take one of those slots).
+- At most 10 new App IDs per week.
+- You need a computer with **Windows or macOS** at least for the first installation.
+
+**iPhone requirements:** iOS 26 or later and a passcode turned on.
+
+### Option A: Sideloadly (the simplest)
+
+1. Install [Sideloadly](https://sideloadly.io) on Windows or Mac. On Windows also install **iTunes and iCloud downloaded from Apple's website** (not the Microsoft Store versions).
+2. Download `Vigilia.ipa` (see [Building](#building)).
+3. Connect the iPhone with a cable, unlock it, and tap **Trust This Computer**.
+4. Drag `Vigilia.ipa` into Sideloadly, enter your Apple ID, and press **Start**. It will ask for your password and verification code. If you want, create a new Apple ID just for this.
+5. Continue with [First launch on the iPhone](#first-launch-on-the-iphone).
+6. **Every 7 days** repeat step 4 (without deleting the app). If your version of Sideloadly offers *automatic refresh*, turn it on: it renews the signature only while the computer is on and the iPhone is reachable over Wi-Fi or cable (turn on Wi-Fi sync in iTunes or Finder).
+
+### Option B: AltStore Classic
+
+1. Install **AltServer** from [altstore.io](https://altstore.io) on your Windows or Mac and, with it, install **AltStore** on the iPhone using your Apple ID.
+2. Transfer `Vigilia.ipa` to the iPhone (AirDrop, the Files app, or downloading it from Releases in Safari).
+3. In AltStore: **My Apps › +** and choose the IPA.
+4. AltStore renews the signature automatically when the iPhone and the computer running AltServer are on the same Wi-Fi network.
+
+### Option C: SideStore (renew without a computer)
+
+[SideStore](https://docs.sidestore.io) is a variant of AltStore that, after an initial setup with a computer, **renews apps from the iPhone itself** using a local VPN (LocalDevVPN, on the App Store). It's the most convenient option day to day but the most laborious to install; follow the [official guide](https://docs.sidestore.io/docs/installation/prerequisites). Keep in mind that updating iOS may ask you to regenerate the pairing file with the computer.
+
+### First launch on the iPhone
+
+1. **Developer Mode:** Settings › Privacy & Security › **Developer Mode** › turn on and restart. (The option appears after the first attempt to install an app this way.)
+2. **Trust your Apple ID:** Settings › General › **VPN & Device Management** › your Apple ID › Trust.
+3. Open **Vigilia** and tap **«Permitir alarmas»** ("Allow alarms").
+4. Turn on the alarm, choose the days and the time (or turn off «Misma hora todos los días», "Same time every day", to set a different time for each day).
+5. Tap **«Probar: sonará en 1 minuto»** ("Test: it will ring in 1 minute"), lock the iPhone, and check that it rings, that it can't be snoozed, and that it only turns off with the challenge.
+
+---
+
+## Customizing
+
+| What | Where |
 |---|---|
-| Días y hora (la misma o una por día) | En la app |
-| Bundle ID | Fijo: `com.leonardoramirezr.leoneraalarm` (no cambiarlo) |
-| Nombre visible | `CFBundleDisplayName` en [`Info.plist`](Info.plist) (`Leonera Alarm`) |
-| Versión (local) | `VERSION=… make build` |
-| Repeticiones, duración de la sesión, desbloqueo, cuánto antes se puede desactivar | `AlarmRules` en [`src/Core/AlarmMath.swift`](src/Core/AlarmMath.swift) |
-| Penalizaciones, tiempo por respuesta, duraciones posibles del reto | `ChallengeRules` y `ChallengeDuration` en [`src/Core/MathChallenge.swift`](src/Core/MathChallenge.swift) |
-| Tipos de operaciones de cada dificultad | `ProblemFactory` en [`src/Core/MathChallenge.swift`](src/Core/MathChallenge.swift) |
-| Estadísticas | [`src/Core/WakeStatistics.swift`](src/Core/WakeStatistics.swift) |
-| Sonidos | Lista `SOUNDS` en [`scripts/generate_sounds.py`](scripts/generate_sounds.py) (cada uno debe durar menos de 30 s) |
-| Ícono | Ver [Ícono](#ícono): `python3 scripts/make_icon.py --use N`, o reemplaza `Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png` (1024×1024) |
+| Days and time (the same or one per day) | In the app |
+| Bundle ID | Fixed: `com.leonardoramirezr.leoneraalarm` (don't change it) |
+| Display name | `CFBundleDisplayName` in [`Info.plist`](Info.plist) (`Leonera Alarm`) |
+| Version (local) | `VERSION=… make build` |
+| Repeats, session length, unlocking, how early it can be turned off | `AlarmRules` in [`src/Core/AlarmMath.swift`](src/Core/AlarmMath.swift) |
+| Penalties, time per answer, possible challenge durations | `ChallengeRules` and `ChallengeDuration` in [`src/Core/MathChallenge.swift`](src/Core/MathChallenge.swift) |
+| Operation types for each difficulty | `ProblemFactory` in [`src/Core/MathChallenge.swift`](src/Core/MathChallenge.swift) |
+| Statistics | [`src/Core/WakeStatistics.swift`](src/Core/WakeStatistics.swift) |
+| Sounds | `SOUNDS` list in [`scripts/generate_sounds.py`](scripts/generate_sounds.py) (each one must last less than 30 s) |
+| Icon | See [Icon](#icon): `python3 scripts/make_icon.py --use N`, or replace `Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png` (1024×1024) |
 
-## Ícono
+## Icon
 
-Cuatro opciones sobre la misma idea, un amanecer en la ciudad. La app usa la **1 (Horizonte)**.
+Four options on the same idea, a sunrise over the city. The app uses **1 (Horizon)**.
 
-![Las cuatro opciones del ícono](design/icons/preview.png)
+![The four icon options](design/icons/preview.png)
 
-Cada opción es un SVG en [`design/icons/`](design/icons) dibujado por [`scripts/make_icon.py`](scripts/make_icon.py). Para cambiar el ícono de la app:
+Each option is an SVG in [`design/icons/`](design/icons) drawn by [`scripts/make_icon.py`](scripts/make_icon.py). To change the app icon:
 
 ```sh
-python3 scripts/make_icon.py --use 3    # 1 Horizonte, 2 Despertador, 3 Ventana, 4 Isométrica
+python3 scripts/make_icon.py --use 3    # 1 Horizon, 2 Alarm clock, 3 Window, 4 Isometric
 ```
 
-Necesita Pillow (`pip install pillow`) y Chrome o Chromium para convertir el SVG a PNG (si no lo encuentra, indícalo con `CHROME=/ruta/a/chrome`).
+It needs Pillow (`pip install pillow`) and Chrome or Chromium to convert the SVG to PNG (if it can't find it, point to it with `CHROME=/path/to/chrome`).
 
-## Estructura del proyecto
+## Project structure
 
 ```
 .
 ├── src/
-│   ├── App/        # AlarmKit, App Intents, audio, firma
-│   ├── Core/       # lógica pura: rotación de sonidos, reto, horarios (probada en tests/)
+│   ├── App/        # AlarmKit, App Intents, audio, signing
+│   ├── Core/       # pure logic: sound rotation, challenge, schedules (tested in tests/)
 │   └── Views/      # SwiftUI
-├── tests/          # pruebas de la lógica (make test)
-├── Resources/      # catálogo de assets con el ícono
-├── scripts/        # sonidos, ícono, API de App Store Connect, verificación de la IPA y GitHub Pages
-├── design/icons/   # las cuatro opciones del ícono (SVG) y su vista previa
+├── tests/          # logic tests (make test)
+├── Resources/      # asset catalog with the icon
+├── scripts/        # sounds, icon, App Store Connect API, IPA verification, and GitHub Pages
+├── design/icons/   # the four icon options (SVG) and their preview
 ├── Info.plist
-├── project.yml     # proyecto de Xcode para XcodeGen (lo usa GitHub Actions)
-├── build.sh        # compilación completa sin proyecto de Xcode
+├── project.yml     # Xcode project for XcodeGen (used by GitHub Actions)
+├── build.sh        # full build without an Xcode project
 ├── Makefile
 └── .github/workflows/build.yml
 ```
 
-## Licencia
+## License
 
-[GNU General Public License v3.0](LICENSE). Los sonidos y el ícono se generan con los scripts de este repositorio y se distribuyen bajo la misma licencia.
+[GNU General Public License v3.0](LICENSE). The sounds and the icon are generated with this repository's scripts and are distributed under the same license.
