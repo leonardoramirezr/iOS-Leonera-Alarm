@@ -266,7 +266,7 @@ struct HomeView: View {
                     Text("• Cada día suena un sonido distinto para que no te acostumbres.")
                     Text("• No existe posponer. Si la detienes desde la pantalla bloqueada o con los botones, vuelve a sonar cada minuto y luego más espaciado durante una hora.")
                     Text("• Para apagarla de verdad abre Vigilia (botón «Resolver reto») y haz el reto de cálculo mental. El tiempo solo avanza mientras respondes bien y cada error resta 5 segundos.")
-                    Text("• Eliges la dificultad del reto (operaciones con números de 1, 2 o 3 dígitos) y cuánto dura: de 1 a 10 minutos.")
+                    Text("• Eliges la dificultad del reto (operaciones con números de 1, 2 o 3 dígitos) y cuánto dura: de 15 segundos a 10 minutos.")
                     Text("• Con «Cambiar siguiente alarma» eliges otra hora solo para la próxima alarma; ese día suena solo a esa hora y los demás días siguen igual.")
                     Text("• Desde 3 horas antes de que suene puedes desactivar esa alarma haciendo el mismo reto desde la app. Solo se salta esa vez; las siguientes suenan como siempre.")
                     Text("• Si durante el reto te quedas 15 s sin acertar (25 s con 3 dígitos), la alarma vuelve a sonar dentro de la app hasta tu siguiente respuesta correcta, a todo volumen en la bocina del iPhone aunque lo hayas bajado.")
@@ -396,7 +396,7 @@ struct DurationPicker: View {
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
-        // Ten options don't fit in a segmented control, so a menu.
+        // Twelve options don't fit in a segmented control, so a menu.
         VStack(alignment: .leading, spacing: 8) {
             Picker(selection: $selection) {
                 ForEach(ChallengeDuration.allCases) { duration in
@@ -407,7 +407,7 @@ struct DurationPicker: View {
                     .foregroundStyle(isEnabled ? Color.primary : Color.secondary)
             }
             .pickerStyle(.menu)
-            Text("Minutos respondiendo bien: el tiempo solo corre mientras aciertas.")
+            Text("Tiempo respondiendo bien: el reloj solo corre mientras aciertas.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
