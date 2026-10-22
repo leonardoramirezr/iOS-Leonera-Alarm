@@ -49,5 +49,7 @@
     <array>
         <string>UIInterfaceOrientationPortrait</string>
     </array>
+    <key>VigiliaBuildName</key>
+    <string>$(VIGILIA_BUILD_NAME)</string>
 </dict>
 </plist>
