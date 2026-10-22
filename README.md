@@ -99,10 +99,10 @@ No se puede usar mientras una alarma (o la prueba) está sonando o tiene el reto
 
 Por dentro: como una alarma semanal de AlarmKit no puede saltarse una semana, la de ese día se reemplaza por una alarma única para la semana siguiente; cuando ya pasó la hora desactivada, la app vuelve a ponerla semanal.
 
-### Cambiar solo mañana
-En la sección **Alarma**, **«Cambiar solo mañana»** pone otra hora para el día siguiente sin tocar los demás días:
-- Si mañana suena a las 8:00, puedes cambiarla a las 9:00: ese día solo suena a las 9:00 y la de las 8:00 no.
-- Si mañana normalmente no suena (por ejemplo, un domingo), suena solo esa vez a la hora que elijas.
+### Cambiar siguiente alarma
+En la sección **Alarma**, **«Cambiar siguiente alarma»** pone otra hora solo para la próxima alarma, sea hoy, mañana o dentro de varios días, sin tocar los demás días:
+- Si la próxima suena el lunes a las 8:00, puedes cambiarla a las 9:00: ese lunes solo suena a las 9:00 y la de las 8:00 no.
+- Al activarlo empieza con la hora de siempre de esa alarma; los días siguientes suenan como siempre.
 - Funciona como cualquier alarma: no se puede posponer, vuelve a sonar hasta completar el reto y se puede desactivar antes.
 - Forma parte de los ajustes, así que también queda bloqueada si los cambios están bloqueados.
 

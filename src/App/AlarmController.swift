@@ -221,23 +221,15 @@ final class AlarmController: ObservableObject {
         save()
     }
 
-    /// The usual time of the day after `date`, or nil when that day has no alarm.
-    func usualTime(onDayAfter date: Date) -> AlarmTime? {
-        guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: date) else { return nil }
-        let weekday = calendar.component(.weekday, from: tomorrow)
-        return state.settings.weekdays.contains(weekday) ? state.settings.time(on: weekday) : nil
-    }
-
-    /// Makes tomorrow ring only at `time` (nil removes the change).
-    func setTomorrowOverride(_ time: AlarmTime?) {
-        guard let time else {
+    /// Makes the next alarm a one-time alarm that starts at its usual time, so its
+    /// time can be changed just for that day (false removes the change).
+    func setNextAlarmOverride(_ on: Bool) {
+        guard on else {
             updateSettings { $0.dayOverride = nil }
             return
         }
-        let today = Date()
-        guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: today),
-              let date = calendar.date(bySettingHour: time.hour, minute: time.minute, second: 0, of: tomorrow) else { return }
-        updateSettings { $0.dayOverride = date }
+        guard dayOverride == nil, let next = nextOccurrence(after: Date()) else { return }
+        updateSettings { $0.dayOverride = next }
     }
 
     /// Changes the time of the one-time alarm, keeping its day.
