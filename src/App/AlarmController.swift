@@ -1,12 +1,6 @@
-import ActivityKit
-import AlarmKit
 import Foundation
 import SwiftUI
 import UIKit
-
-struct VigiliaAlarmMetadata: AlarmMetadata {
-    var kind: String
-}
 
 struct ChallengeRequest: Identifiable, Equatable {
     enum Purpose: Equatable {
@@ -40,32 +34,32 @@ struct ChallengeSummary {
     var mistakes: Int
 }
 
-/// Owns every AlarmKit alarm the app creates.
+/// Owns every alarm the app creates, through AlarmKit on iOS 26 or later and local
+/// notifications on iOS 18 to 25 (see `AlarmBackend`).
 ///
 /// - One weekly-repeating alarm per selected weekday, each with the sound of its
 ///   next occurrence, so the alarm sounds different every day.
-/// - A chain of one-shot "re-ring" alarms after each occurrence. AlarmKit always
-///   shows a Stop control and the physical buttons silence the alarm, so instead of
-///   fighting that, the alarm simply comes back until the challenge is completed.
-///   The chain lives in the system, so closing or killing the app does not stop it.
+/// - A chain of one-shot "re-ring" alarms after each occurrence. iOS always lets the
+///   alarm be stopped (AlarmKit's Stop control, the physical buttons, swiping the
+///   notification away), so instead of fighting that, the alarm simply comes back
+///   until the challenge is completed. The chain lives in the system, so closing or
+///   killing the app does not stop it.
 @MainActor
 final class AlarmController: ObservableObject {
     static let shared = AlarmController()
 
-    enum AlarmKind: String {
-        case main, retry, test
-    }
-
     @Published private(set) var state: VigiliaState
-    @Published private(set) var authorization: AlarmManager.AuthorizationState
+    @Published private(set) var authorization: AlarmAuthorization
     @Published private(set) var now = Date()
-    /// AlarmKit reports one of the app's alarms going off right now.
+    /// The system reports one of the app's alarms going off right now.
     @Published private(set) var hasAlertingAlarm = false
     @Published var challenge: ChallengeRequest?
     @Published var notice: String?
 
     let sounds = SoundLibrary.shared
-    private let manager = AlarmManager.shared
+    /// AlarmKit (iOS 26 or later); otherwise the alarms are local notifications.
+    let usesAlarmKit: Bool
+    private let backend: any AlarmBackend
     private static let storageKey = "vigilia.state.v1"
     private var calendar: Calendar { Calendar.autoupdatingCurrent }
     private var operations: Task<Void, Never>?
@@ -75,9 +69,23 @@ final class AlarmController: ObservableObject {
     private var isStateLoaded = false
 
     private init() {
+        let backend: any AlarmBackend
+        if #available(iOS 26.0, *) {
+            backend = AlarmKitBackend()
+            usesAlarmKit = true
+        } else {
+            backend = NotificationAlarmBackend()
+            usesAlarmKit = false
+        }
+        self.backend = backend
         state = VigiliaState()
-        authorization = AlarmManager.shared.authorizationState
+        authorization = backend.authorization
         loadState()
+    }
+
+    /// Where the permission is turned on in the Settings app.
+    var permissionSettingsPath: String {
+        usesAlarmKit ? "Ajustes > Vigilia > Alarmas" : "Ajustes > Vigilia > Notificaciones"
     }
 
     /// After a reboot iOS keeps app data encrypted until the first unlock, and an
@@ -147,7 +155,7 @@ final class AlarmController: ObservableObject {
         loadState()
         startObserving()
         now = Date()
-        authorization = manager.authorizationState
+        authorization = backend.authorization
         refreshAlerting()
         presentChallengeIfNeeded()
         reconcileSoon(after: 0)
@@ -164,23 +172,20 @@ final class AlarmController: ObservableObject {
     private func startObserving() {
         guard !observing else { return }
         observing = true
-        Task {
-            for await alarms in manager.alarmUpdates {
+        backend.startObserving(
+            alarms: { alarms in
                 self.now = Date()
-                self.hasAlertingAlarm = alarms.contains { $0.state == .alerting }
+                self.hasAlertingAlarm = alarms.contains { $0.isAlerting }
                 if self.hasAlertingAlarm {
                     self.presentChallengeIfNeeded()
                 }
-            }
-        }
-        Task {
-            for await authorization in manager.authorizationUpdates {
+            },
+            authorization: { authorization in
                 self.authorization = authorization
                 if authorization == .authorized {
                     self.reconcileSoon(after: 0)
                 }
-            }
-        }
+            })
     }
 
     private func presentChallengeIfNeeded() {
@@ -199,7 +204,7 @@ final class AlarmController: ObservableObject {
         if enabled {
             Task {
                 guard await self.ensureAuthorized() else {
-                    self.notice = "Sin permiso para crear alarmas. Actívalo en Ajustes > Vigilia > Alarmas."
+                    self.notice = "Sin permiso para crear alarmas. Actívalo en \(self.permissionSettingsPath)."
                     return
                 }
                 guard !self.state.settings.isEnabled, self.applySettings({ $0.isEnabled = true }) else { return }
@@ -256,7 +261,7 @@ final class AlarmController: ObservableObject {
         changeChallenge { $0.challengeDuration = duration }
     }
 
-    /// Only the challenge changes, so the alarms in AlarmKit stay as they are. Like
+    /// Only the challenge changes, so the alarms in iOS stay as they are. Like
     /// any other setting it can't change while an alarm rings.
     private func changeChallenge(_ change: (inout AlarmSettings) -> Void) {
         now = Date()
@@ -295,25 +300,21 @@ final class AlarmController: ObservableObject {
     }
 
     private func refreshAlerting() {
-        if let alarms = try? manager.alarms {
-            hasAlertingAlarm = alarms.contains { $0.state == .alerting }
+        if let alarms = try? backend.alarms() {
+            hasAlertingAlarm = alarms.contains { $0.isAlerting }
         }
     }
 
     func ensureAuthorized() async -> Bool {
-        switch manager.authorizationState {
-        case .authorized:
-            authorization = .authorized
-            return true
-        case .denied:
-            authorization = .denied
-            return false
+        let current = await backend.updateAuthorization()
+        switch current {
+        case .authorized, .denied:
+            authorization = current
+            return current == .authorized
         case .notDetermined:
-            let result = (try? await manager.requestAuthorization()) ?? .denied
+            let result = await backend.requestAuthorization()
             authorization = result
             return result == .authorized
-        @unknown default:
-            return false
         }
     }
 
@@ -322,7 +323,7 @@ final class AlarmController: ObservableObject {
     func scheduleTest() {
         enqueue {
             guard await self.ensureAuthorized() else {
-                self.notice = "Sin permiso para crear alarmas. Actívalo en Ajustes > Vigilia > Alarmas."
+                self.notice = "Sin permiso para crear alarmas. Actívalo en \(self.permissionSettingsPath)."
                 return
             }
             self.cancelTest()
@@ -346,14 +347,15 @@ final class AlarmController: ObservableObject {
 
     private func cancelTest() {
         guard let test = state.test else { return }
-        try? manager.cancel(id: test.id)
+        backend.cancel(id: test.id)
         cancelRetries { $0.occurrence.isSameInstant(as: test.occurrence) }
         state.test = nil
     }
 
     // MARK: - Challenge
 
-    /// The alarm was stopped from the system UI (Stop slider, buttons). Unless the
+    /// The alarm was stopped from the system UI (Stop slider, buttons, the
+    /// notification swiped away). Unless the
     /// challenge is done, make sure it rings again within a minute.
     func alarmStoppedFromSystemUI() async {
         await enqueue {
@@ -459,9 +461,9 @@ final class AlarmController: ObservableObject {
     }
 
     private func stopRingingAlarms() {
-        guard let alarms = try? manager.alarms else { return }
-        for alarm in alarms where alarm.state == .alerting {
-            try? manager.stop(id: alarm.id)
+        guard let alarms = try? backend.alarms() else { return }
+        for alarm in alarms where alarm.isAlerting {
+            backend.stop(id: alarm.id)
             state.retries.removeAll { $0.id == alarm.id }
         }
         save()
@@ -480,29 +482,30 @@ final class AlarmController: ObservableObject {
         }
     }
 
-    /// Brings the alarms registered in AlarmKit in line with the settings.
+    /// Brings the alarms registered in iOS in line with the settings.
     private func reconcile() async {
         loadState()
         self.now = Date()
-        authorization = manager.authorizationState
+        await backend.refresh()
+        authorization = backend.authorization
         guard isStateLoaded, authorization == .authorized else { return }
 
-        var live: [UUID: Alarm] = [:]
+        var live: [UUID: SystemAlarm] = [:]
         do {
-            for alarm in try manager.alarms {
+            for alarm in try backend.alarms() {
                 live[alarm.id] = alarm
             }
         } catch {
             notice = "No se pudieron leer las alarmas: \(error.localizedDescription)"
             return
         }
-        hasAlertingAlarm = live.values.contains { $0.state == .alerting }
+        hasAlertingAlarm = live.values.contains { $0.isAlerting }
 
         let now = Date()
         let session = state.activeSession(at: now, calendar: calendar)
         let next = nextOccurrence(after: now)
 
-        // AlarmKit deletes one-shot alarms once they fire and are stopped.
+        // iOS deletes one-shot alarms once they fire and are stopped.
         state.retries.removeAll { live[$0.id] == nil }
         if let test = state.test, session?.isTest != true, test.occurrence < now {
             cancelTest()
@@ -514,7 +517,7 @@ final class AlarmController: ObservableObject {
         if let next { wanted.append(next) }
         if let test = state.test { wanted.append(test.occurrence) }
         cancelRetries { retry in
-            live[retry.id]?.state != .alerting
+            live[retry.id]?.isAlerting != true
                 && (!wanted.contains { $0.isSameInstant(as: retry.occurrence) } || retry.fireDate < now.addingTimeInterval(-120))
         }
 
@@ -532,13 +535,13 @@ final class AlarmController: ObservableObject {
         var tracked = Set(state.mains.map(\.id) + state.retries.map(\.id))
         if let test = state.test { tracked.insert(test.id) }
         if let override = state.dayOverrideAlarm { tracked.insert(override.id) }
-        for (id, alarm) in live where !tracked.contains(id) && alarm.state != .alerting {
-            try? manager.cancel(id: id)
+        for (id, alarm) in live where !tracked.contains(id) && !alarm.isAlerting {
+            backend.cancel(id: id)
         }
         save()
     }
 
-    private func reconcileMainAlarms(live: [UUID: Alarm], now: Date) async {
+    private func reconcileMainAlarms(live: [UUID: SystemAlarm], now: Date) async {
         let plans = state.mainAlarmPlans(after: now, calendar: calendar)
         var kept: [MainAlarmRecord] = []
         var covered = Set<Int>()
@@ -548,7 +551,7 @@ final class AlarmController: ObservableObject {
             let plan = plans[record.weekday]
             let matches = plan?.time == AlarmTime(hour: record.hour, minute: record.minute)
                 && !covered.contains(record.weekday)
-            if alarm.state == .alerting {
+            if alarm.isAlerting {
                 // Never interrupt an alarm that is ringing; it is revisited next time.
                 kept.append(record)
                 if matches { covered.insert(record.weekday) }
@@ -575,20 +578,13 @@ final class AlarmController: ObservableObject {
                     continue
                 }
             }
-            try? manager.cancel(id: record.id)
+            backend.cancel(id: record.id)
         }
 
         for plan in plans.values.sorted(by: { $0.weekday < $1.weekday }) where !covered.contains(plan.weekday) {
             let time = plan.time
             let sound = soundInfo(for: plan.fireDate)?.file
-            let schedule: Alarm.Schedule
-            if plan.isOneShot {
-                schedule = .fixed(plan.fireDate)
-            } else {
-                schedule = .relative(.init(
-                    time: .init(hour: time.hour, minute: time.minute),
-                    repeats: .weekly([Self.localeWeekday(plan.weekday)])))
-            }
+            let schedule: AlarmSchedule = plan.isOneShot ? .fixed(plan.fireDate) : .weekly(weekday: plan.weekday, time: time)
             let id = UUID()
             do {
                 try await scheduleAlarm(id: id, kind: .main, schedule: schedule, sound: sound)
@@ -603,12 +599,12 @@ final class AlarmController: ObservableObject {
     }
 
     /// A one-shot alarm for the change of one day, while it has yet to ring.
-    private func reconcileDayOverride(live: [UUID: Alarm], now: Date) async {
+    private func reconcileDayOverride(live: [UUID: SystemAlarm], now: Date) async {
         let wanted = state.pendingDayOverride(after: now)
         if let record = state.dayOverrideAlarm, let alarm = live[record.id] {
-            if alarm.state == .alerting { return }
+            if alarm.isAlerting { return }
             if let wanted, record.occurrence.isSameInstant(as: wanted) { return }
-            try? manager.cancel(id: record.id)
+            backend.cancel(id: record.id)
         }
         state.dayOverrideAlarm = nil
         guard let wanted else { return }
@@ -621,46 +617,10 @@ final class AlarmController: ObservableObject {
         }
     }
 
-    // MARK: - AlarmKit
+    // MARK: - Scheduling
 
-    private func scheduleAlarm(id: UUID, kind: AlarmKind, schedule: Alarm.Schedule, sound: String?) async throws {
-        let attributes = AlarmAttributes<VigiliaAlarmMetadata>(
-            presentation: AlarmPresentation(alert: Self.alert(for: kind)),
-            metadata: VigiliaAlarmMetadata(kind: kind.rawValue),
-            tintColor: Color(red: 0.95, green: 0.45, blue: 0.2))
-        let alertSound: AlertConfiguration.AlertSound
-        if let sound {
-            alertSound = .named(sound)
-        } else {
-            alertSound = .default
-        }
-        let configuration = AlarmManager.AlarmConfiguration<VigiliaAlarmMetadata>.alarm(
-            schedule: schedule,
-            attributes: attributes,
-            stopIntent: StopAlarmIntent(alarmID: id.uuidString),
-            secondaryIntent: OpenChallengeIntent(alarmID: id.uuidString),
-            sound: alertSound)
-        _ = try await manager.schedule(id: id, configuration: configuration)
-    }
-
-    /// No snooze button: the only extra action opens the challenge.
-    private static func alert(for kind: AlarmKind) -> AlarmPresentation.Alert {
-        let title: LocalizedStringResource
-        switch kind {
-        case .main: title = "¡Despierta! Haz el reto"
-        case .retry: title = "Sigue sonando: haz el reto"
-        case .test: title = "Prueba de Vigilia"
-        }
-        let challengeButton = AlarmButton(text: "Resolver reto", textColor: .white, systemImageName: "brain.head.profile")
-        if #available(iOS 26.1, *) {
-            return AlarmPresentation.Alert(title: title, secondaryButton: challengeButton, secondaryButtonBehavior: .custom)
-        } else {
-            return AlarmPresentation.Alert(
-                title: title,
-                stopButton: AlarmButton(text: "Detener", textColor: .white, systemImageName: "stop.fill"),
-                secondaryButton: challengeButton,
-                secondaryButtonBehavior: .custom)
-        }
+    private func scheduleAlarm(id: UUID, kind: AlarmKind, schedule: AlarmSchedule, sound: String?) async throws {
+        try await backend.schedule(id: id, kind: kind, schedule: schedule, sound: sound)
     }
 
     private func scheduleRetries(for occurrence: Date, at dates: [Date], sound: String?) async {
@@ -682,7 +642,7 @@ final class AlarmController: ObservableObject {
         let doomed = state.retries.filter(shouldCancel)
         guard !doomed.isEmpty else { return }
         for retry in doomed {
-            try? manager.cancel(id: retry.id)
+            backend.cancel(id: retry.id)
         }
         let ids = Set(doomed.map(\.id))
         state.retries.removeAll { ids.contains($0.id) }
@@ -715,22 +675,10 @@ final class AlarmController: ObservableObject {
     }
 
     private func report(_ error: Error) {
-        if let alarmError = error as? AlarmManager.AlarmError, alarmError == .maximumLimitReached {
+        if backend.isLimitReached(error) {
             notice = "iOS no permite programar más alarmas por ahora."
         } else {
             notice = "No se pudo programar la alarma: \(error.localizedDescription)"
-        }
-    }
-
-    private static func localeWeekday(_ weekday: Int) -> Locale.Weekday {
-        switch weekday {
-        case 1: return .sunday
-        case 2: return .monday
-        case 3: return .tuesday
-        case 4: return .wednesday
-        case 5: return .thursday
-        case 6: return .friday
-        default: return .saturday
         }
     }
 }
