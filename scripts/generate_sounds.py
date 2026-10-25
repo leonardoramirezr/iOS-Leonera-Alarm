@@ -155,6 +155,8 @@ class Mix:
     def __init__(self):
         self.length = int(DURATION * SR)
         self.buffer = [0.0] * self.length
+        # Multiplies the soft clipper's drive: above 1 the sound is pushed harder, so it comes out louder.
+        self.push = 1.0
 
     def add(self, time, samples, gain=1.0):
         start = int(time * SR)
@@ -171,7 +173,7 @@ class Mix:
         # Sparse or percussive sounds get pushed harder into the soft clipper so
         # that every sound in the pool is roughly as loud as the others.
         target = 10 ** (-10.0 / 20)
-        drive = 1.5 * min(2.5, max(1.0, target / max(rms, 1e-6)))
+        drive = 1.5 * self.push * min(2.5, max(1.0, target / max(rms, 1e-6)))
         norm = 0.93 / math.tanh(drive)
         scale = drive / peak
         buf = [math.tanh(v * scale) * norm for v in buf]
@@ -1891,6 +1893,8 @@ def p_cowbell(r, mix):
     conga = drum(420.0, 330.0, 0.08, 1800, 89)
     bell_pattern = r.choice(["L.HLH.LHL.HLH.LH", "LHH.LHLHL.HLHHLH"])
     clave_pattern = r.choice(["x..x..x...x.x...", "..x.x...x..x..x."])
+    # Sparse hits are already saturated at the default drive and still come out quiet, so push them harder.
+    mix.push = 2.2
     t = 0.0
     while t < DURATION:
         for s in range(16):
