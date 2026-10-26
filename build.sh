@@ -14,7 +14,8 @@ BUNDLE_ID="com.leonardoramirezr.leoneraalarm"  # fixed; keep in sync with APP_BU
 VERSION="${VERSION:-1.0}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
 BUILD_NAME="${BUILD_NAME:-local}"
-MIN_IOS="26.0"
+# iOS 26 or later uses AlarmKit; iOS 18 to 25 falls back to local notifications.
+MIN_IOS="18.0"
 BUILD_DIR="build"
 OBJ_DIR="${BUILD_DIR}/obj"
 APP_BUNDLE="${BUILD_DIR}/${APP_NAME}.app"
@@ -66,6 +67,7 @@ xcrun --sdk iphoneos swiftc \
     -O -wmo \
     -emit-const-values-path "${ROOT}/${OBJ_DIR}/${APP_NAME}.swiftconstvalues" \
     -Xfrontend -const-gather-protocols-file -Xfrontend "${ROOT}/${OBJ_DIR}/const-protocols.json" \
+    -Xlinker -weak_framework -Xlinker AlarmKit \
     -o "${APP_BUNDLE}/${APP_NAME}" \
     "${SOURCES[@]}"
 

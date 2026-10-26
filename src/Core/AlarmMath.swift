@@ -2,7 +2,7 @@ import Foundation
 
 enum AlarmRules {
     /// Minutes after the alarm at which it rings again unless the challenge is done.
-    /// Pre-scheduled in AlarmKit, so they fire even if the app is closed or killed.
+    /// Pre-scheduled in iOS (AlarmKit, or notifications on iOS 18), so they fire even if the app is closed or killed.
     static let retryMinutes = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 30, 45, 60]
     /// How long after the alarm the app still demands the challenge.
     static let sessionWindow: TimeInterval = 65 * 60

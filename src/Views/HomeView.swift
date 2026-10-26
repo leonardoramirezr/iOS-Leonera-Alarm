@@ -1,4 +1,3 @@
-import AlarmKit
 import SwiftUI
 import UIKit
 
@@ -49,7 +48,11 @@ struct HomeView: View {
                     }
                 }
             } else {
-                Text("Vigilia necesita permiso para crear alarmas que suenen aunque el iPhone esté en silencio o en modo Concentración.")
+                if controller.usesAlarmKit {
+                    Text("Vigilia necesita permiso para crear alarmas que suenen aunque el iPhone esté en silencio o en modo Concentración.")
+                } else {
+                    Text("En esta versión de iOS las alarmas son notificaciones: Vigilia necesita permiso para enviarlas con sonido.")
+                }
                 Button("Permitir alarmas") {
                     Task { _ = await controller.ensureAuthorized() }
                 }
@@ -191,6 +194,11 @@ struct HomeView: View {
         let isIOS27 = ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 27
         return Section {
             VStack(alignment: .leading, spacing: 10) {
+                if !controller.usesAlarmKit {
+                    Label("En iOS 18 la alarma es una notificación: con el iPhone en silencio solo vibra. Déjalo con sonido por la noche y, si usas una Concentración (como Dormir), permite en ella las notificaciones urgentes de Vigilia.",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
                 Text("Con el iPhone bloqueado la alarma suena al volumen de tono y alertas de iOS, y ninguna app puede subirlo. Si «Cambiar con botones» está activado, bajar el volumen con los botones también lo baja y la alarma puede sonar muy quedito o solo vibrar.")
                 Text("En Ajustes › Sonidos y vibración:")
                 Text("• Desactiva «Cambiar con botones».")
@@ -277,7 +285,11 @@ struct HomeView: View {
                     Text("• Desde 3 horas antes de que suene puedes desactivar esa alarma haciendo el mismo reto desde la app. Solo se salta esa vez; las siguientes suenan como siempre.")
                     Text("• Si durante el reto te quedas 15 s sin acertar (25 s con 3 dígitos), la alarma vuelve a sonar dentro de la app hasta tu siguiente respuesta correcta, a todo volumen en la bocina del iPhone aunque lo hayas bajado.")
                     Text("• Si sales de la app durante el reto, empieza de nuevo; si la cierras, la alarma vuelve a sonar en poco más de un minuto.")
-                    Text("• Las alarmas viven en iOS (AlarmKit): suenan aunque cierres la app, reinicies el iPhone o esté en silencio o en Concentración.")
+                    if controller.usesAlarmKit {
+                        Text("• Las alarmas viven en iOS (AlarmKit): suenan aunque cierres la app, reinicies el iPhone o esté en silencio o en Concentración.")
+                    } else {
+                        Text("• Las alarmas viven en iOS como notificaciones urgentes: suenan aunque cierres la app o reinicies el iPhone, pero no con el iPhone en silencio. Si deslizas la notificación para quitarla, vuelve a sonar.")
+                    }
                 }
                 .font(.callout)
                 .padding(.vertical, 4)
