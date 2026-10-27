@@ -125,6 +125,9 @@ struct WakeRecord: Codable, Equatable, Identifiable {
     var isTest: Bool
     /// Title of the sound that rang. Missing in records saved by older versions.
     var sound: String? = nil
+    /// When the alarm first rang, as the system reported it: iOS can ring a minute or
+    /// two after the scheduled time. Missing when the system could not tell.
+    var ringAt: Date? = nil
 
     var id: Date { completedAt }
 }
@@ -132,6 +135,13 @@ struct WakeRecord: Codable, Equatable, Identifiable {
 struct ActiveSession: Equatable {
     var occurrence: Date
     var isTest: Bool
+}
+
+/// When the alarm of an occurrence first rang. Kept until its challenge is completed,
+/// so it survives the app being closed in between.
+struct FirstRing: Codable, Equatable {
+    var occurrence: Date
+    var ringAt: Date
 }
 
 struct VigiliaState: Equatable {
@@ -143,6 +153,7 @@ struct VigiliaState: Equatable {
     var retries: [RetryRecord] = []
     var test: TestRecord?
     var completedOccurrences: [Date] = []
+    var firstRings: [FirstRing] = []
     var history: [WakeRecord] = []
     var settingsUnlockedUntil: Date?
 
@@ -152,9 +163,26 @@ struct VigiliaState: Equatable {
 
     mutating func markCompleted(_ occurrence: Date) {
         guard !isCompleted(occurrence) else { return }
+        firstRings.removeAll { $0.occurrence.isSameInstant(as: occurrence) }
         completedOccurrences.append(occurrence)
         if completedOccurrences.count > 60 {
             completedOccurrences.removeFirst(completedOccurrences.count - 60)
+        }
+    }
+
+    /// When the alarm of `occurrence` first rang, while its challenge is pending.
+    func firstRing(of occurrence: Date) -> Date? {
+        firstRings.first { $0.occurrence.isSameInstant(as: occurrence) }?.ringAt
+    }
+
+    mutating func noteFirstRing(of occurrence: Date, at ringAt: Date) {
+        if let index = firstRings.firstIndex(where: { $0.occurrence.isSameInstant(as: occurrence) }) {
+            firstRings[index].ringAt = ringAt
+            return
+        }
+        firstRings.append(FirstRing(occurrence: occurrence, ringAt: ringAt))
+        if firstRings.count > 60 {
+            firstRings.removeFirst(firstRings.count - 60)
         }
     }
 
@@ -293,7 +321,7 @@ struct VigiliaState: Equatable {
 
 extension VigiliaState: Codable {
     private enum CodingKeys: String, CodingKey {
-        case settings, armedSince, mains, dayOverrideAlarm, retries, test, completedOccurrences, history, settingsUnlockedUntil
+        case settings, armedSince, mains, dayOverrideAlarm, retries, test, completedOccurrences, firstRings, history, settingsUnlockedUntil
     }
 
     // Every key is optional so that older saved data keeps loading after updates.
@@ -307,6 +335,7 @@ extension VigiliaState: Codable {
         retries = try container.decodeIfPresent([RetryRecord].self, forKey: .retries) ?? []
         test = try container.decodeIfPresent(TestRecord.self, forKey: .test)
         completedOccurrences = try container.decodeIfPresent([Date].self, forKey: .completedOccurrences) ?? []
+        firstRings = try container.decodeIfPresent([FirstRing].self, forKey: .firstRings) ?? []
         history = try container.decodeIfPresent([WakeRecord].self, forKey: .history) ?? []
         settingsUnlockedUntil = try container.decodeIfPresent(Date.self, forKey: .settingsUnlockedUntil)
     }

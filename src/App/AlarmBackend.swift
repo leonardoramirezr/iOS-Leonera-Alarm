@@ -42,6 +42,9 @@ protocol AlarmBackend: AnyObject {
     /// Brings `alarms()` and `authorization` up to date where the system only
     /// answers asynchronously.
     func refresh() async
+    /// When each alarm started ringing, as far as the app knows: the moment iOS delivered
+    /// it when the system reports that, otherwise when the app first saw it ringing.
+    var lastRings: [UUID: Date] { get }
 
     func schedule(id: UUID, kind: AlarmKind, schedule: AlarmSchedule, sound: String?) async throws
     func cancel(id: UUID)

@@ -177,6 +177,7 @@ final class AlarmController: ObservableObject {
                 self.now = Date()
                 self.hasAlertingAlarm = alarms.contains { $0.isAlerting }
                 if self.hasAlertingAlarm {
+                    self.noteRingingSession()
                     self.presentChallengeIfNeeded()
                 }
             },
@@ -427,10 +428,12 @@ final class AlarmController: ObservableObject {
                 await self.reconcile()
             }
         case .wake(let occurrence, let isTest):
+            noteFirstRing(of: occurrence)
+            let ringAt = state.firstRing(of: occurrence)
             state.markCompleted(occurrence)
             state.recordWake(
                 WakeRecord(occurrence: occurrence, completedAt: now, solved: summary.solved, mistakes: summary.mistakes, isTest: isTest,
-                           sound: soundTitle(forWake: occurrence, isTest: isTest)))
+                           sound: soundTitle(forWake: occurrence, isTest: isTest), ringAt: ringAt))
             save()
             enqueue {
                 self.stopRingingAlarms()
@@ -500,6 +503,7 @@ final class AlarmController: ObservableObject {
             return
         }
         hasAlertingAlarm = live.values.contains { $0.isAlerting }
+        noteRingingSession()
 
         let now = Date()
         let session = state.activeSession(at: now, calendar: calendar)
@@ -649,6 +653,23 @@ final class AlarmController: ObservableObject {
     }
 
     // MARK: - Helpers
+
+    /// Remembers when the alarm of `occurrence` first rang, as the system reports it.
+    /// The statistics measure from that moment: iOS can ring a minute or two late.
+    private func noteFirstRing(of occurrence: Date) {
+        let earliest = backend.lastRings.values
+            .filter { $0 >= occurrence.addingTimeInterval(-AlarmRules.earlyTolerance) }
+            .min()
+        guard let ringAt = earliest, (state.firstRing(of: occurrence) ?? .distantFuture) > ringAt else { return }
+        state.noteFirstRing(of: occurrence, at: ringAt)
+        save()
+    }
+
+    /// `noteFirstRing(of:)` for the session that is ringing now.
+    private func noteRingingSession() {
+        guard let session = state.activeSession(at: Date(), calendar: calendar) else { return }
+        noteFirstRing(of: session.occurrence)
+    }
 
     /// Runs alarm operations one after another so they never interleave.
     @discardableResult

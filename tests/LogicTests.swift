@@ -556,6 +556,13 @@ struct LogicTests {
         let legacy = #"{"occurrence":0,"completedAt":60,"solved":3,"mistakes":1,"isTest":false}"#
         let old = try? JSONDecoder().decode(WakeRecord.self, from: Data(legacy.utf8))
         expect(old != nil && old?.sound == nil, "records saved without a sound still load")
+
+        var ringing = VigiliaState()
+        ringing.noteFirstRing(of: start, at: start.addingTimeInterval(90))
+        let restored = try! JSONDecoder().decode(VigiliaState.self, from: JSONEncoder().encode(ringing))
+        expect(restored.firstRing(of: start) == start.addingTimeInterval(90), "the first ring survives closing the app")
+        ringing.markCompleted(start)
+        expect(ringing.firstRing(of: start) == nil, "a completed challenge forgets its first ring")
     }
 
     static func testStatistics() {
@@ -607,6 +614,13 @@ struct LogicTests {
                 ? sample.alarmMinute == 480 && sample.offMinute == 510 && close(sample.minutesToOff, 30)
                 : sample.alarmMinute == 420 && sample.offMinute == 425 && close(sample.minutesToOff, 5)
         }, "each wake-up keeps when the alarm rang, when it was turned off and how long that took")
+
+        // The first ring counts over the scheduled time, when the system reported it.
+        let ringLate = WakeRecord(occurrence: date("2026-10-09T07:00:00"), completedAt: date("2026-10-09T07:05:00"),
+                                  solved: 10, mistakes: 0, isTest: false, ringAt: date("2026-10-09T07:02:00"))
+        let ringLateSample = WakeStatistics.samples(from: [ringLate], period: .always, now: now, calendar: calendar).first
+        expect(ringLateSample?.alarmMinute == 422 && ringLateSample?.offMinute == 425 && close(ringLateSample?.minutesToOff, 3),
+               "the alarm time and the time to turn it off start at the first ring")
 
         let week = samples(.week)
         let alarmWeek = WakeStatistics.summary(of: week, .alarmTime)

@@ -112,12 +112,14 @@ enum WakeStatistics {
         return history
             .filter { !$0.isTest && $0.occurrence >= start && $0.occurrence <= now }
             .map { record in
-                WakeSample(
+                // The first ring, or the scheduled time when the system didn't report it.
+                let rang = record.ringAt ?? record.occurrence
+                return WakeSample(
                     day: calendar.startOfDay(for: record.occurrence),
                     weekday: calendar.component(.weekday, from: record.occurrence),
-                    alarmMinute: minuteOfDay(record.occurrence, calendar: calendar),
+                    alarmMinute: minuteOfDay(rang, calendar: calendar),
                     offMinute: minuteOfDay(record.completedAt, calendar: calendar),
-                    minutesToOff: max(0, record.completedAt.timeIntervalSince(record.occurrence) / 60))
+                    minutesToOff: max(0, record.completedAt.timeIntervalSince(rang) / 60))
             }
             .sorted { $0.day < $1.day }
     }

@@ -14,6 +14,10 @@ struct VigiliaAlarmMetadata: AlarmMetadata {
 @MainActor
 final class AlarmKitBackend: AlarmBackend {
     private let manager = AlarmManager.shared
+    /// When each alarm started ringing, seen while the app runs: AlarmKit only says
+    /// which alarms are ringing, not since when.
+    private(set) var lastRings: [UUID: Date] = [:]
+    private var alertingIDs = Set<UUID>()
 
     var authorization: AlarmAuthorization {
         Self.map(manager.authorizationState)
@@ -68,6 +72,11 @@ final class AlarmKitBackend: AlarmBackend {
     ) {
         Task {
             for await updated in manager.alarmUpdates {
+                let alerting = Set(updated.filter { $0.state == .alerting }.map(\.id))
+                for id in alerting.subtracting(alertingIDs) {
+                    lastRings[id] = Date()
+                }
+                alertingIDs = alerting
                 alarms(updated.map { SystemAlarm(id: $0.id, isAlerting: $0.state == .alerting) })
             }
         }
