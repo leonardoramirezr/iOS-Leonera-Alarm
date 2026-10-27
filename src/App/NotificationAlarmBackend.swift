@@ -19,6 +19,8 @@ final class NotificationAlarmBackend: NSObject, AlarmBackend, UNUserNotification
     private static let authorizationKey = "vigilia.notificationAuthorization"
     /// The sounds last 28 s: that long after it is delivered, a notification is ringing.
     private static let ringDuration: TimeInterval = 30
+    /// Ring times older than this are forgotten.
+    private static let ringMemory: TimeInterval = 24 * 60 * 60
 
     private let center = UNUserNotificationCenter.current()
     private var calendar: Calendar { Calendar.autoupdatingCurrent }
@@ -30,6 +32,9 @@ final class NotificationAlarmBackend: NSObject, AlarmBackend, UNUserNotification
     private var pending: [UUID: AlarmSchedule] = [:]
     /// When each recent notification was delivered.
     private var delivered: [UUID: Date] = [:]
+    /// When each alarm last started ringing. Kept after its notification leaves the
+    /// Notification Center, so the app can still tell when it rang (see `refresh()`).
+    private(set) var lastRings: [UUID: Date] = [:]
     /// When each alarm was silenced with `stop(id:)`.
     private var silenced: [UUID: Date] = [:]
     private var onAlarmsChange: (@MainActor ([SystemAlarm]) -> Void)?
@@ -132,14 +137,21 @@ final class NotificationAlarmBackend: NSObject, AlarmBackend, UNUserNotification
         var recent: [UUID: Date] = [:]
         var old: [String] = []
         for notification in notifications {
-            if now.timeIntervalSince(notification.date) < Self.ringDuration,
-               let id = UUID(uuidString: notification.request.identifier) {
+            let identifier = notification.request.identifier
+            guard let id = UUID(uuidString: identifier) else {
+                old.append(identifier)
+                continue
+            }
+            // Read here, before the old notifications are removed below.
+            lastRings[id] = max(lastRings[id] ?? .distantPast, notification.date)
+            if now.timeIntervalSince(notification.date) < Self.ringDuration {
                 recent[id] = max(recent[id] ?? .distantPast, notification.date)
             } else {
-                old.append(notification.request.identifier)
+                old.append(identifier)
             }
         }
         delivered = recent
+        lastRings = lastRings.filter { now.timeIntervalSince($0.value) < Self.ringMemory }
         // The app is open: the alarms that already rang are no longer needed in the
         // Notification Center.
         center.removeDeliveredNotifications(withIdentifiers: old)
@@ -234,6 +246,7 @@ final class NotificationAlarmBackend: NSObject, AlarmBackend, UNUserNotification
     private func didDeliver(identifier: String, at date: Date) {
         guard let id = UUID(uuidString: identifier) else { return }
         delivered[id] = date
+        lastRings[id] = date
         if let alarms = try? alarms() {
             onAlarmsChange?(alarms)
         }
