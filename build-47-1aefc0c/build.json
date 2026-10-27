@@ -1,0 +1,17 @@
+{
+  "tag": "build-47-1aefc0c",
+  "version": "0.8.0",
+  "build_number": "47",
+  "run_number": 47,
+  "stable": false,
+  "branch": "ultimos-despertares-sonido",
+  "commit": "1aefc0cd5bd78ecbd1640e116b5d4c1016a46828",
+  "bundle_id": "com.leonardoramirezr.leoneraalarm",
+  "title": "Vigilia",
+  "date": "2026-10-22T12:13:45Z",
+  "ipa": "Vigilia.ipa",
+  "run_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/actions/runs/39776110296",
+  "release_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/releases/tag/build-47-1aefc0c",
+  "manifest_url": "https://leonardoramirezr.github.io/iOS-Leonera-Alarm/build-47-1aefc0c/manifest.plist",
+  "install_url": "itms-services://?action=download-manifest&url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-47-1aefc0c%2Fmanifest.plist"
+}

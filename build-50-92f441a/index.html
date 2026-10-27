@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vigilia build-50-92f441a</title>
+<link rel="apple-touch-icon" href="icon-512.png">
+<style>
+:root { color-scheme: light dark; --bg: #f5f5f7; --card: #fff; --text: #1d1d1f; --muted: #6e6e73; --accent: #0071e3; --line: #d2d2d7; }
+@media (prefers-color-scheme: dark) { :root { --bg: #000; --card: #1c1c1e; --text: #f5f5f7; --muted: #98989d; --accent: #2997ff; --line: #38383a; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+main { max-width: 640px; margin: 0 auto; padding: 32px 16px 48px; }
+header { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; }
+header img { width: 72px; height: 72px; border-radius: 16px; }
+h1 { font-size: 28px; margin: 0; }
+h2 { font-size: 20px; margin: 32px 0 12px; }
+p { margin: 4px 0; }
+.muted { color: var(--muted); font-size: 14px; }
+.button { display: block; text-align: center; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; padding: 14px 20px; border-radius: 12px; margin: 16px 0; }
+.card { background: var(--card); border-radius: 14px; padding: 16px; margin: 12px 0; }
+ul { list-style: none; padding: 0; margin: 0; background: var(--card); border-radius: 14px; }
+li { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+li:first-child { border-top: 0; }
+li a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+code { font-size: 13px; }
+.warn { border: 2px solid #ff9f0a; font-weight: 600; }
+[hidden] { display: none !important; }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+<header><img src="icon-512.png" alt=""><div><h1>Vigilia build-50-92f441a</h1>
+<p class="muted">build de prueba de la rama <code>claude/pages-commit-title</code> · versión 0.8.0 (50) · commit <code>92f441a</code></p><p>Show the commit title on the GitHub Pages build pages</p></div></header>
+<a class="button" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-50-92f441a%2Fmanifest.plist">Instalar en el iPhone</a>
+<p class="card warn" id="warn" hidden></p>
+<div class="card" id="after" hidden>
+<p><strong>¿Tocaste «Instalar» en la ventana de Safari?</strong></p>
+<p class="muted">La app se descarga directo a la pantalla de inicio (o solo a la Biblioteca de apps, según tus ajustes), sin barra de progreso en Safari: desliza hacia abajo en la pantalla de inicio y busca «Vigilia».
+Si no apareció ninguna ventana, recarga esta página y vuelve a tocar el botón.</p>
+</div>
+<div class="card">
+<p><strong>Cómo instalar</strong></p>
+<p class="muted">Abre esta página en <strong>Safari</strong> (no en Chrome ni dentro de otra app) en un iPhone registrado en la cuenta de desarrollador, toca el botón y luego <strong>Instalar</strong> en la ventana que aparece.
+Para abrir la app hace falta Ajustes › Privacidad y seguridad › <strong>Modo de desarrollador</strong> activado (pide reiniciar).</p>
+</div>
+<script>
+(function () {
+  var ua = navigator.userAgent;
+  var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var safari = /Safari[/]/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA[/]/.test(ua);
+  var warn = document.getElementById("warn");
+  if (!ios) {
+    warn.textContent = "Abre esta página en el iPhone: las apps solo se instalan desde Safari en el iPhone.";
+    warn.hidden = false;
+  } else if (!safari) {
+    warn.textContent = "Estás en otro navegador o en el navegador de una app, que no pueden instalar apps. Abre esta página en Safari.";
+    warn.hidden = false;
+  }
+  document.querySelectorAll('a[href^="itms-services:"]').forEach(function (a) {
+    a.addEventListener("click", function () { document.getElementById("after").hidden = false; });
+  });
+})();
+</script>
+<p class="muted"><a href="Vigilia.ipa">Descargar el IPA</a> · <a href="https://github.com/leonardoramirezr/iOS-Leonera-Alarm/releases/tag/build-50-92f441a">Release</a> · <a href="https://github.com/leonardoramirezr/iOS-Leonera-Alarm/actions/runs/39787114608">Ejecución en Actions</a> · <a href="../">Todos los builds</a></p>
+
+</main>
+</body>
+</html>

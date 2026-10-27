@@ -1,0 +1,17 @@
+{
+  "tag": "build-36-739b12c",
+  "version": "0.3.0",
+  "build_number": "36",
+  "run_number": 36,
+  "stable": false,
+  "branch": "claude/alarm-full-volume",
+  "commit": "739b12c450369d6a7d7ba495ab901952b46fce5a",
+  "bundle_id": "com.leonardoramirezr.leoneraalarm",
+  "title": "Vigilia",
+  "date": "2026-10-14T14:48:15Z",
+  "ipa": "Vigilia.ipa",
+  "run_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/actions/runs/38583249972",
+  "release_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/releases/tag/build-36-739b12c",
+  "manifest_url": "https://leonardoramirezr.github.io/iOS-Leonera-Alarm/build-36-739b12c/manifest.plist",
+  "install_url": "itms-services://?action=download-manifest&url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-36-739b12c%2Fmanifest.plist"
+}
