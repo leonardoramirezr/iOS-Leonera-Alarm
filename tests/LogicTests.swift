@@ -616,10 +616,10 @@ struct LogicTests {
         }, "each wake-up keeps when the alarm rang, when it was turned off and how long that took")
 
         // The first ring counts over the scheduled time, when the system reported it.
-        let late = WakeRecord(occurrence: date("2026-10-09T07:00:00"), completedAt: date("2026-10-09T07:05:00"),
-                              solved: 10, mistakes: 0, isTest: false, ringAt: date("2026-10-09T07:02:00"))
-        let lateSample = WakeStatistics.samples(from: [late], period: .always, now: now, calendar: calendar).first
-        expect(lateSample?.alarmMinute == 422 && lateSample?.offMinute == 425 && close(lateSample?.minutesToOff, 3),
+        let ringLate = WakeRecord(occurrence: date("2026-10-09T07:00:00"), completedAt: date("2026-10-09T07:05:00"),
+                                  solved: 10, mistakes: 0, isTest: false, ringAt: date("2026-10-09T07:02:00"))
+        let ringLateSample = WakeStatistics.samples(from: [ringLate], period: .always, now: now, calendar: calendar).first
+        expect(ringLateSample?.alarmMinute == 422 && ringLateSample?.offMinute == 425 && close(ringLateSample?.minutesToOff, 3),
                "the alarm time and the time to turn it off start at the first ring")
 
         let week = samples(.week)
