@@ -1,0 +1,17 @@
+{
+  "tag": "build-30-220ca8d",
+  "version": "0.1.0",
+  "build_number": "30",
+  "run_number": 30,
+  "stable": false,
+  "branch": "claude/adhoc-signing-pages",
+  "commit": "220ca8d4e6da4253560de9e22c2fd3e0b0df3a44",
+  "bundle_id": "com.leonardoramirezr.vigilia-ios",
+  "title": "Vigilia",
+  "date": "2026-10-13T15:05:29Z",
+  "ipa": "Vigilia.ipa",
+  "run_url": "https://github.com/leonardoramirezr/vigilia-ios/actions/runs/38418498172",
+  "release_url": "https://github.com/leonardoramirezr/vigilia-ios/releases/tag/build-30-220ca8d",
+  "manifest_url": "https://leonardoramirezr.github.io/iOS-Leonera-Alarm/build-30-220ca8d/manifest.plist",
+  "install_url": "itms-services://?action=download-manifest&url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-30-220ca8d%2Fmanifest.plist"
+}

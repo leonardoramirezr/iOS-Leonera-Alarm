@@ -1,0 +1,18 @@
+{
+  "tag": "build-60-42f4c44",
+  "version": "0.13.0",
+  "build_number": "60",
+  "run_number": 60,
+  "stable": false,
+  "branch": "claude/gallant-heisenberg-k3wc58",
+  "commit": "42f4c44bb1dba42c9e66bc5bad6c75147a72612a",
+  "commit_title": "Support iOS 18 with local notifications instead of AlarmKit",
+  "bundle_id": "com.leonardoramirezr.leoneraalarm",
+  "title": "Vigilia",
+  "date": "2026-10-25T20:10:01Z",
+  "ipa": "Vigilia.ipa",
+  "run_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/actions/runs/40229218387",
+  "release_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/releases/tag/build-60-42f4c44",
+  "manifest_url": "https://leonardoramirezr.github.io/iOS-Leonera-Alarm/build-60-42f4c44/manifest.plist",
+  "install_url": "itms-services://?action=download-manifest&url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-60-42f4c44%2Fmanifest.plist"
+}

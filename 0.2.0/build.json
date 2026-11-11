@@ -1,0 +1,17 @@
+{
+  "tag": "0.2.0",
+  "version": "0.2.0",
+  "build_number": "33",
+  "run_number": 33,
+  "stable": true,
+  "branch": "main",
+  "commit": "42e5d843f6c5b0d4754c8903ee7e6ba66ebaf1d4",
+  "bundle_id": "com.leonardoramirezr.ios-leonera-alarm",
+  "title": "Vigilia",
+  "date": "2026-10-14T00:01:23Z",
+  "ipa": "Vigilia.ipa",
+  "run_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/actions/runs/38487431652",
+  "release_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/releases/tag/0.2.0",
+  "manifest_url": "https://leonardoramirezr.github.io/iOS-Leonera-Alarm/0.2.0/manifest.plist",
+  "install_url": "itms-services://?action=download-manifest&url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.2.0%2Fmanifest.plist"
+}
