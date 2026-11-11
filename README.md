@@ -53,7 +53,7 @@ What changes on iOS 18:
 - Time-sensitive notifications need the `com.apple.developer.usernotifications.time-sensitive` entitlement ([`Vigilia.entitlements`](Vigilia.entitlements)), which the GitHub Actions signature includes. An IPA signed with Sideloadly, AltStore, or SideStore may not include it; then the notifications are normal ones and a Focus silences them.
 
 ### The sounds
-There are 90 and all of them are synthesized from scratch with [`scripts/generate_sounds.py`](scripts/generate_sounds.py), with no recordings or third-party audio. Each one has its own timbre, rhythm, and pitch, and none of them imitates an emergency siren or alarm: waking up to something that sounds like an emergency is needlessly scary.
+There are 90 and all of them are synthesized from scratch with [`scripts/generate_sounds.py`](scripts/generate_sounds.py), with no recordings or third-party audio. Each one has its own timbre, rhythm, and pitch, and none of them imitates an emergency siren or alarm, or sounds like gunfire: waking up to something that sounds like an emergency or a shooting is needlessly scary.
 
 | Type | Sounds |
 |---|---|

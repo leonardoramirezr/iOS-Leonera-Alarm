@@ -1138,6 +1138,7 @@ GUITAR_CHORDS = {
     "Em": [40, 47, 52, 55, 59, 64],
     "Am": [45, 52, 57, 60, 64],
     "F": [41, 48, 53, 57, 60, 65],
+    "E": [40, 47, 52, 56, 59, 64],
 }
 
 
@@ -1909,21 +1910,54 @@ def p_cowbell(r, mix):
     trim_bass(mix)
 
 
+def palma(center, seed):
+    """Flamenco hand clap (cached): three quick slaps, then the hollow of the hands rings at `center` for an
+    instant. That ring and its short tail keep it a clap: a long, broad burst of noise sounds like a shot."""
+    key = ("palma", center, seed)
+    cached = _notes.get(key)
+    if cached is not None:
+        return cached
+    out = [0.0] * int(0.09 * SR)
+    for k, (offset, gain) in enumerate(((0.0, 0.4), (0.006, 0.6), (0.012, 0.5))):
+        place(out, offset, burst(0.01, center, 2.5, 0.0025, seed=seed + k), gain)
+    place(out, 0.018, burst(0.07, center, 5.0, 0.014, seed=seed + 3))
+    place(out, 0.018, strike(center, ((1.0, 1.0, 0.012), (1.5, 0.3, 0.006)), 0.06), 0.5)
+    _notes[key] = out
+    return out
+
+
+# The Andalusian cadence a flamenco guitar strums through each 12-beat cycle, on the accents (12, 3, 6, 8, 10).
+BULERIA_CHORDS = {0: "Am", 3: "G", 6: "F", 8: "E", 10: "E"}
+
+
 def p_palmas(r, mix):
-    # Bulerías: a 12-beat cycle of bright and muted hand claps, a second clapper on the off-beats and footwork.
+    # Bulerías: a 12-beat cycle of bright and muted hand claps, a second clapper on the off-beats, footwork,
+    # and a guitar's rasgueado on the accents. The claps ring short and hollow, and the guitar keeps the
+    # cycle music: dry claps alone, seven or eight a second, can sound like distant shots.
     beat = 60.0 / r.uniform(200, 230)
-    bright = [clap(2400, seed=90 + k) for k in range(3)]
-    muted = [clap(950, seed=95 + k) for k in range(3)]
+    bright = [palma(2300, seed=90 + k * 4) for k in range(3)]
+    muted = [palma(1100, seed=110 + k * 4) for k in range(3)]
     heel = layer((glide("sine", [(0.0, 160.0), (0.08, 90.0)], amp=[(0.0, 1.0), (0.08, 0.0)]), 0.8),
-                 (burst(0.03, 1400, 1.0, 0.006, seed=99), 0.6))
-    accents = (0, 3, 6, 8, 10)  # counting from 12: 12, 3, 6, 8, 10
+                 (burst(0.03, 1400, 1.0, 0.006, seed=99), 0.3))
+
+    def rasgueado(chord, when):
+        # The fingers flick out one after another (three quick strokes), then the whole hand sweeps down.
+        strings = GUITAR_CHORDS[chord]
+        for stroke, gain in ((0.0, 0.14), (0.035, 0.17), (0.07, 0.2), (0.11, 0.3)):
+            for s, m in enumerate(strings):
+                tone = pluck(midi(m), beat * 2.5, t60=1.0, bright=0.6, seed=m)
+                mix.add(when + stroke + s * 0.004, tone, gain)
+
     t = 0.0
     cycle = 0
     while t < DURATION:
         for b in range(12):
             when = t + b * beat
-            mix.add(when, r.choice(bright) if b in accents else r.choice(muted), 0.8 if b in accents else 0.3)
-            mix.add(when + beat / 2, r.choice(muted), 0.35)
+            accent = b in BULERIA_CHORDS
+            mix.add(when, r.choice(bright) if accent else r.choice(muted), 0.45 if accent else 0.25)
+            mix.add(when + beat / 2, r.choice(muted), 0.25)
+            if accent:
+                rasgueado(BULERIA_CHORDS[b], when - 0.11)
             if cycle % 2 and b >= 8:
                 mix.add(when, heel, 0.6)
                 mix.add(when + beat / 2, heel, 0.5)
@@ -1937,32 +1971,82 @@ def p_palmas(r, mix):
 SNARE_FIGURES = ["A.xxA.xxA.xxArrr", "AxxAxxAxAxxAxxAx", "rrrrrrrrrrrrA.A.", "f.x.f.x.fxfxA.A.", "AxAxxAxAxxAxrrrA"]
 
 
+# Rhythms of a bar of the fife's march, as note lengths in sixteenths. The last one ends a phrase.
+FIFE_RHYTHMS = [[4, 2, 2, 4, 4], [2, 2, 2, 2, 4, 4], [3, 1, 3, 1, 4, 4], [3, 1, 2, 2, 8], [4, 4, 2, 2, 4],
+                [2, 2, 4, 2, 2, 4], [4, 4, 8]]
+
+
 def p_snare_cadence(r, mix):
-    # Marching snare: accents, flams and buzz rolls that swell into an accent, over a bass drum.
+    # Fife and drum: a shrill fife plays a march over a field drum's accents, flams and buzz rolls that swell
+    # into an accent, and a bass drum. The field drum rings at the pitch of its tight head with only a thin
+    # sizzle of snares, and the tune keeps it music: a drum that is all noise, alone, in accents and rolls,
+    # sounds like gunfire.
     sixteenth = 60.0 / r.uniform(112, 124) / 4
-    hands = [snare(195.0, 4200.0, 0.11, seed=100), snare(200.0, 4400.0, 0.1, seed=101)]
+    key = r.randint(74, 77)
+
+    def field_drum(f, seed):
+        head = strike(f, ((1.0, 1.0, 0.07), (1.59, 0.55, 0.045), (2.14, 0.3, 0.03), (2.65, 0.2, 0.018)), 0.35)
+        wires = burst(0.12, 6000.0, 1.5, 0.03, seed, attack=0.003)
+        return layer((head, 1.0), (wires, 0.45))
+
+    def fife(m, length):
+        cache_key = ("fife", m, round(length, 4))
+        if cache_key not in _notes:
+            f = midi(m)
+            tone = glide("triangle", [(0.0, f * 0.98), (0.03, f), (length, f)], vib_rate=5.5, vib_depth=0.006,
+                         attack=0.015, release=0.03)
+            hiss = svf(noise(length, m), f * 2, 3.0, "band")
+            peak = max(abs(v) for v in hiss) or 1.0
+            # The breath chiffs as the tongue starts each note, then stays as a faint hiss.
+            chiff = ramp([(0.0, 0.5), (0.05, 0.15), (length, 0.15)], len(hiss))
+            _notes[cache_key] = layer((tone, 1.0), ([v / peak * g for v, g in zip(hiss, chiff)], 0.25))
+        return _notes[cache_key]
+
+    def bar_tune(chord, last):
+        notes = []
+        start = 0
+        degree = chord + r.choice([0, 2, 4])
+        for length in FIFE_RHYTHMS[-1] if last else r.choice(FIFE_RHYTHMS[:-1]):
+            degree += r.choice([-2, -1, -1, 1, 1, 2])
+            if start % 4 == 0:
+                degree = min((chord + d for d in (0, 2, 4, 7)), key=lambda d: abs(d - degree))
+            degree = max(-1, min(9, degree))
+            notes.append((start, length, degree))
+            start += length
+        if last:
+            notes[-1] = (notes[-1][0], notes[-1][1], 7 if notes[-1][2] > 3 else 0)
+        return notes
+
+    phrase_a = [bar_tune(chord, k == 3) for k, chord in enumerate((0, 3, 4, 0))]
+    phrase_b = [bar_tune(chord, k == 3) for k, chord in enumerate((3, 0, 4, 0))]
+    tune = phrase_a + phrase_a + phrase_b + phrase_a
+    hands = [field_drum(330.0, 100), field_drum(345.0, 101)]
     bass = drum(120.0, 74.0, 0.12, 700, 102, drive=2.0)
     t = 0.0
     hand = 0
+    bar = 0
     while t < DURATION:
+        for start, length, degree in tune[bar % len(tune)]:
+            mix.add(t + start * sixteenth, fife(key + scale_step("major", degree), length * sixteenth * 0.9), 0.5)
+        bar += 1
         figure = r.choice(SNARE_FIGURES)
         roll = 0
         for s, token in enumerate(figure):
             when = t + s * sixteenth
             if s % 8 == 0:
-                mix.add(when, bass, 0.5)
+                mix.add(when, bass, 0.35)
             if token == "r":
                 roll += 1
                 for k in range(4):
-                    mix.add(when + k * sixteenth / 4, hands[(hand + k) % 2], min(0.6, 0.18 + 0.04 * roll))
+                    mix.add(when + k * sixteenth / 4, hands[(hand + k) % 2], min(0.35, 0.1 + 0.025 * roll))
                 continue
             roll = 0
             if token == "f":
-                mix.add(when - 0.025, hands[1 - hand], 0.3)
+                mix.add(when - 0.025, hands[1 - hand], 0.2)
             if token in "Af":
-                mix.add(when, hands[hand], 0.85)
+                mix.add(when, hands[hand], 0.55)
             elif token == "x":
-                mix.add(when, hands[hand], 0.35)
+                mix.add(when, hands[hand], 0.22)
             hand = 1 - hand
         t += 16 * sixteenth
     trim_bass(mix)
@@ -2256,8 +2340,10 @@ def p_camotero(r, mix):
 
 
 def p_helicopter(r, mix):
-    # Rotor blades chopping the air, a turbine whine and the tail rotor's buzz, flying past and coming back.
-    blades = r.uniform(10.5, 13.0)
+    # Rotor blades beating the air, a turbine whine and the tail rotor's buzz, flying past and coming back.
+    # The rotor is a roar that never stops and swells smoothly with every blade ("wop-wop"): short thuds of
+    # noise with silence between them, a dozen per second, sound like a machine gun.
+    blades = r.uniform(6.5, 8.0)
     whine = r.uniform(2300, 3000)
     passes = [(0.0, 0.35), (5.0, 1.0), (9.0, 0.3), (13.0, 0.35), (17.5, 1.0), (21.5, 0.3), (25.0, 0.7), (28.5, 1.0)]
     # Doppler: a little higher while it approaches, lower once it has passed.
@@ -2267,16 +2353,25 @@ def p_helicopter(r, mix):
     doppler.append((DURATION + 0.5, 1.03))
     level = ramp(passes, int(DURATION * SR) + 1)
     pitch = ramp(doppler, int(DURATION * SR) + 1)
-    whup = burst(0.09, 500, 0.8, 0.025, seed=141, attack=0.004)
-    t = 0.0
-    while t < DURATION:
-        i = int(t * SR)
-        mix.add(t, whup, 0.8 * level[i])
-        t += 1.0 / (blades * pitch[i])
+    wash = layer((svf(noise(DURATION, 141), 420, 0.9, "band"), 1.0), (svf(noise(DURATION, 142), 1500, 0.7, "band"), 0.3))
+    peak = max(abs(v) for v in wash) or 1.0
+    rotor = [0.0] * len(wash)
+    phase = 0.0
+    for i in range(len(wash)):
+        # Each blade lifts the roar from a seventh of its level and lets it down along a cosine: it takes
+        # tens of milliseconds to rise, never the instant crack of a shot.
+        swell = 0.5 - 0.5 * math.cos(TWO_PI * phase)
+        rotor[i] = wash[i] / peak * level[i] * (0.15 + 0.85 * swell * swell)
+        phase += blades * pitch[i] / SR
+        if phase >= 1.0:
+            phase -= 1.0
+    mix.add(0.0, rotor, 0.8)
     turbine = glide("sine", [(time, whine * k) for time, k in doppler], amp=passes)
     tail = glide("saw", [(time, 95.0 * k) for time, k in doppler], amp=passes)
-    mix.add(0.0, layer((turbine, 0.08), (svf(tail, 900, 1.0, "band"), 0.35)))
+    mix.add(0.0, layer((turbine, 0.07), (svf(tail, 900, 1.0, "band"), 0.25)))
     trim_bass(mix)
+    # A roar that never stops needs less drive: pushed hard into the soft clipper, its swells would flatten out.
+    mix.push = 0.8
 
 
 def p_race_cars(r, mix):
@@ -2859,14 +2954,24 @@ def p_banjo(r, mix):
 
 def p_typewriter(r, mix):
     # A mechanical typewriter: bursts of keystrokes and the space bar, the bell a few letters before
-    # the end of the line, then the carriage return.
-    keys = [layer((burst(0.05, center, 1.2, 0.008, seed=250 + k), 1.0), (burst(0.08, 600, 1.5, 0.02, seed=255 + k), 0.7))
-            for k, center in enumerate((2600, 3000, 3400, 3900))]
-    escapement = burst(0.01, 5000, 2.0, 0.002, seed=260)
-    space = layer((burst(0.08, 400, 1.2, 0.02, seed=261), 1.0), (burst(0.02, 2000, 1.0, 0.004, seed=262), 0.4))
+    # the end of the line, then the carriage return. Every hit rings like metal on metal or on the rubber
+    # platen, with only a tiny tick of noise: cracks of noise with a dull thud under them, coming in quick
+    # bursts, sound like gunfire.
+    keys = [layer((strike(f, ((1.0, 1.0, 0.01), (2.71, 0.45, 0.006), (5.16, 0.2, 0.003)), 0.06, attack=0.0015), 0.8),
+                  (strike(f * 0.29, ((1.0, 1.0, 0.016), (2.32, 0.35, 0.008)), 0.08), 0.6),
+                  (burst(0.01, 5500, 3.0, 0.0015, seed=250 + k), 0.2))
+            for k, f in enumerate((1850, 2100, 2350, 2650))]
+    escapement = strike(4200, ((1.0, 1.0, 0.003), (1.8, 0.4, 0.002)), 0.015, attack=0.0015)
+    space = layer((strike(300, ((1.0, 1.0, 0.025), (2.4, 0.4, 0.012), (4.6, 0.2, 0.006)), 0.12, attack=0.003), 1.0),
+                  (strike(1300, ((1.0, 1.0, 0.006),), 0.03), 0.3))
     bell = strike(r.uniform(1700, 2100), ((1.0, 1.0, 0.5), (2.32, 0.4, 0.25), (4.25, 0.2, 0.12)), 1.6)
-    ratchet = burst(0.012, 3500, 2.0, 0.003, seed=263)
-    slam = layer((burst(0.15, 500, 0.8, 0.04, seed=264), 1.0), (burst(0.05, 2500, 1.0, 0.01, seed=265), 0.5))
+    ratchet = strike(3000, ((1.0, 1.0, 0.004), (2.2, 0.3, 0.002)), 0.02, attack=0.0015)
+    # The carriage slides back with a rising "zip" and stops against the frame with a metallic clank.
+    zip_up = svf(noise(0.32, 266), lambda time: 1200 + 6000 * time, 2.5, "band")
+    zip_peak = max(abs(v) for v in zip_up) or 1.0
+    slide = envelope([v / zip_peak for v in zip_up], [(0.0, 0.0), (0.12, 1.0), (0.29, 0.8), (0.32, 0.0)])
+    clank = strike(380, ((1.0, 1.0, 0.06), (2.76, 0.55, 0.035), (5.4, 0.3, 0.018), (8.9, 0.15, 0.008)), 0.35,
+                   attack=0.004)
     t = 0.3
     while t < DURATION:
         width = r.randint(30, 42)
@@ -2887,7 +2992,8 @@ def p_typewriter(r, mix):
         # The return lever turns the platen to the next line (a ratchet) and throws the carriage back.
         for k in range(10):
             mix.add(t + k * 0.025, ratchet, 0.4 - 0.025 * k)
-        mix.add(t + 0.4, slam, 0.8)
+        mix.add(t + 0.08, slide, 0.25)
+        mix.add(t + 0.4, clank, 0.6)
         t += r.uniform(0.9, 1.3)
     trim_bass(mix)
 
