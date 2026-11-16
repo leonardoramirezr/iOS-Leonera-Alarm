@@ -1,4 +1,4 @@
-# Vigilia
+# Extreme Alarm by Leonera Labs
 
 An iPhone alarm (iOS 18 or later) built with **AlarmKit**, the alarm framework Apple opened to third-party apps in iOS 26. On **iOS 18**, where AlarmKit doesn't exist, the alarms are **time-sensitive local notifications** instead (see [iOS 18](#ios-18-notifications-instead-of-alarmkit)):
 
@@ -13,6 +13,8 @@ It can be built in two ways: on **GitHub Actions** (no Mac needed), which signs 
 
 > The app's interface is in Spanish. Button and setting names below are quoted exactly as they appear in the app, followed by an English translation.
 
+> The home screen shows it as **Extreme Alarm**. Its old code name, **Vigilia**, remains in file and type names, the Xcode target, and the IPA (`Vigilia.ipa`).
+
 ---
 
 ## At a glance
@@ -22,7 +24,7 @@ It can be built in two ways: on **GitHub Actions** (no Mac needed), which signs 
 | Use AlarmKit | ✅ Yes, on iOS 26 or later | iOS schedules the alarms through `AlarmManager`: they ring with the iPhone on silent, in a Focus, with the app closed, and after a restart. |
 | Work on iOS 18 | ⚠️ Yes, with limits | Without AlarmKit the alarms are time-sensitive local notifications: they ring with the app closed and after a restart, but **not with the iPhone on silent** (it only vibrates). See [iOS 18](#ios-18-notifications-instead-of-alarmkit). |
 | A different sound every day | ✅ Yes | 90 custom sounds in a shuffled rotation. The same sound never plays two days in a row. |
-| No snooze, not even by closing the app | ✅ Yes, with a caveat | iOS **always** shows a control to stop the alarm and the hardware buttons stop it too; no app can remove that. Vigilia handles it by making the alarm **ring again** (every minute and then further apart, for an hour) until you complete the challenge. Those repeats are already scheduled in iOS, so closing or killing the app does not stop them. |
+| No snooze, not even by closing the app | ✅ Yes, with a caveat | iOS **always** shows a control to stop the alarm and the hardware buttons stop it too; no app can remove that. Extreme Alarm handles it by making the alarm **ring again** (every minute and then further apart, for an hour) until you complete the challenge. Those repeats are already scheduled in iOS, so closing or killing the app does not stop them. |
 | Ring at full volume even if the volume is low | ⚠️ Partial | **During the challenge, yes:** if you stop answering correctly, the alarm rings again inside the app and raises the iPhone volume to the maximum (on its speaker). **With the iPhone locked, no:** AlarmKit rings at the iOS ringtone and alerts volume and no app can raise it; you have to leave it at the maximum and turn off "Change with Buttons". See [Volume](#volume). |
 | Turn it off with a 1-minute mental exercise | ✅ Yes | 1 minute of mental math (or 15 s to 10 min, if you choose); the clock pauses if you stop answering and each mistake subtracts 5 s. |
 | Build without Xcode | ⚠️ Partial | **GitHub Actions: yes, with no Mac and no Xcode on your side.** **Locally:** you need a Mac with Xcode *installed* (you never open it and there is no `.xcodeproj`). Without Xcode installed it is not possible: the iOS SDK only ships inside Xcode. |
@@ -36,20 +38,20 @@ It can be built in two ways: on **GitHub Actions** (no Mac needed), which signs 
 ### The alarms
 - For each chosen weekday a weekly alarm is scheduled in AlarmKit, **at that day's time** and with **the sound assigned to that date**. With «Misma hora todos los días» ("Same time every day") on, every day uses a single time; turning it off lets you choose the time of each day separately (and if you turn it back on, the per-day times are kept for next time). Every time you open the app (and you open it daily, because that's where the challenge happens) the alarms are readjusted so the sounds keep rotating. If you didn't open the app for a week, 7 different sounds would still play.
 - Behind each alarm there is a **chain of repeats** already scheduled in iOS: at 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 30, 45, and 60 minutes. It is only cancelled when you complete the challenge.
-- If you stop the alarm from the lock screen, Vigilia also schedules another repeat in 1 minute (if iOS runs its "stop" action; sometimes it doesn't, which is why the chain exists).
+- If you stop the alarm from the lock screen, Extreme Alarm also schedules another repeat in 1 minute (if iOS runs its "stop" action; sometimes it doesn't, which is why the chain exists).
 - The alert has a single extra button, **«Resolver reto»** ("Solve challenge"), which opens the app directly in the challenge.
 
 ### iOS 18: notifications instead of AlarmKit
-AlarmKit only exists on iOS 26 or later. On iOS 18 Vigilia schedules the same alarms (the weekly ones, the chain of repeats, the change of the next alarm, and the test) as **local notifications** with the day's sound, marked as **time-sensitive** ([`src/App/NotificationAlarmBackend.swift`](src/App/NotificationAlarmBackend.swift)). On iOS 26 or later nothing changes: it keeps using AlarmKit ([`src/App/AlarmKitBackend.swift`](src/App/AlarmKitBackend.swift)). Both sit behind the same `AlarmBackend` protocol ([`src/App/AlarmBackend.swift`](src/App/AlarmBackend.swift)), and the app picks one when it starts.
+AlarmKit only exists on iOS 26 or later. On iOS 18 Extreme Alarm schedules the same alarms (the weekly ones, the chain of repeats, the change of the next alarm, and the test) as **local notifications** with the day's sound, marked as **time-sensitive** ([`src/App/NotificationAlarmBackend.swift`](src/App/NotificationAlarmBackend.swift)). On iOS 26 or later nothing changes: it keeps using AlarmKit ([`src/App/AlarmKitBackend.swift`](src/App/AlarmKitBackend.swift)). Both sit behind the same `AlarmBackend` protocol ([`src/App/AlarmBackend.swift`](src/App/AlarmBackend.swift)), and the app picks one when it starts.
 
 What changes on iOS 18:
-- The permission is **Notifications** (Settings › Vigilia › Notifications), not Alarms. «Permitir alarmas» ("Allow alarms") asks for it.
+- The permission is **Notifications** (Settings › Extreme Alarm › Notifications), not Alarms. «Permitir alarmas» ("Allow alarms") asks for it.
 - **With the iPhone on silent it only vibrates.** Only AlarmKit and *critical alerts* (an entitlement Apple only grants to some apps) can ring on silent. Leave the iPhone with sound at night.
-- **In a Focus** (such as Sleep) it only rings if that Focus lets time-sensitive notifications through (Settings › Focus › the Focus › Apps › Vigilia, or "Time Sensitive Notifications" on).
+- **In a Focus** (such as Sleep) it only rings if that Focus lets time-sensitive notifications through (Settings › Focus › the Focus › Apps › Extreme Alarm, or "Time Sensitive Notifications" on).
 - It plays at the ringtone and alerts volume, like AlarmKit, and each sound plays once (28 s): the chain of repeats makes it come back every minute.
 - There is no Stop control: **swiping the notification away** counts as stopping it, and it rings again in a minute. Tapping it or its **«Resolver reto»** ("Solve challenge") button opens the challenge.
 - With the app open, the notification still shows up and rings.
-- iOS keeps at most 64 pending notifications per app; Vigilia uses fewer than 50.
+- iOS keeps at most 64 pending notifications per app; Extreme Alarm uses fewer than 50.
 - Time-sensitive notifications need the `com.apple.developer.usernotifications.time-sensitive` entitlement ([`Vigilia.entitlements`](Vigilia.entitlements)), which the GitHub Actions signature includes. An IPA signed with Sideloadly, AltStore, or SideStore may not include it; then the notifications are normal ones and a Focus silences them.
 
 ### The sounds
@@ -101,9 +103,9 @@ There are two different volumes and the app can only control one:
 
 The app explains the same thing in **«Volumen de la alarma»** ("Alarm volume"), on the main screen.
 
-**Inside the app:** during the alarm challenge, if you go 15 s without a correct answer (25 s with 3 digits), Vigilia plays the day's sound again and **raises the iPhone volume to the maximum**; if you lower it with the buttons, it raises it again. As soon as you answer correctly it stops playing and restores the volume to where it was; if you again go without a correct answer, it plays again. It ignores silent mode. Details:
+**Inside the app:** during the alarm challenge, if you go 15 s without a correct answer (25 s with 3 digits), Extreme Alarm plays the day's sound again and **raises the iPhone volume to the maximum**; if you lower it with the buttons, it raises it again. As soon as you answer correctly it stops playing and restores the volume to where it was; if you again go without a correct answer, it plays again. It ignores silent mode. Details:
 - It only raises the volume on the **iPhone speaker**. With headphones or a Bluetooth speaker connected it plays through them, at whatever volume you have, so it doesn't hurt your ears.
-- iOS has no API to change the volume: Vigilia moves the slider of a hidden `MPVolumeView` ([`src/App/SystemVolume.swift`](src/App/SystemVolume.swift)), the trick alarm apps have used for years. If a version of iOS broke it, the alarm would still ring inside the app, but at whatever volume you have.
+- iOS has no API to change the volume: Extreme Alarm moves the slider of a hidden `MPVolumeView` ([`src/App/SystemVolume.swift`](src/App/SystemVolume.swift)), the trick alarm apps have used for years. If a version of iOS broke it, the alarm would still ring inside the app, but at whatever volume you have.
 - If an AlarmKit alarm or a call interrupts the sound, it restarts on its own.
 
 ### Turning it off before it rings
@@ -163,9 +165,9 @@ Schedules a test alarm in 1 minute that behaves just like the real one (repeats 
 - **The iOS "Stop" control can't be removed** and the hardware buttons stop the alarm (on iOS 18, the notification can be swiped away). That's why the strategy is to make it come back, not to make it impossible to touch.
 - **On iOS 18 the alarm doesn't ring with the iPhone on silent**, and a Focus silences it unless it allows time-sensitive notifications. See [iOS 18](#ios-18-notifications-instead-of-alarmkit).
 - **The AlarmKit alarm volume is set by iOS** (Ringtone and Alerts), not by the app. If it's low, the alarm with the iPhone locked rings quietly or only vibrates. See [Volume](#volume).
-- **Uninstalling the app or removing its Alarms permission** (Settings › Vigilia; Notifications on iOS 18) does turn it off. No app can prevent that.
+- **Uninstalling the app or removing its Alarms permission** (Settings › Extreme Alarm; Notifications on iOS 18) does turn it off. No app can prevent that.
 - AlarmKit custom sounds must last **less than 30 s** and, according to reports from other developers, may play only once instead of repeating. That's why each sound lasts 28 s and the alarm rings again every minute.
-- Apple states that apps **hidden or locked with Face ID** can't use AlarmKit: don't hide or lock Vigilia.
+- Apple states that apps **hidden or locked with Face ID** can't use AlarmKit: don't hide or lock Extreme Alarm.
 - If the **signature expires** (7 days with a free Apple ID; up to a year with the GitHub Actions Ad Hoc signature), the app doesn't open: the alarms still ring, but you couldn't do the challenge. The app shows you when the signature expires and warns you 2 days before.
 - Repeats last one hour (two if you keep stopping it) so that, if you leave your phone at home, it doesn't ring all day.
 
@@ -300,7 +302,7 @@ With a **free Apple ID** you can sign apps for your own devices. The tools below
 
 1. **Developer Mode:** Settings › Privacy & Security › **Developer Mode** › turn on and restart. (The option appears after the first attempt to install an app this way.)
 2. **Trust your Apple ID:** Settings › General › **VPN & Device Management** › your Apple ID › Trust.
-3. Open **Vigilia** and tap **«Permitir alarmas»** ("Allow alarms"). On iOS 18 it asks for permission to send notifications.
+3. Open **Extreme Alarm** and tap **«Permitir alarmas»** ("Allow alarms"). On iOS 18 it asks for permission to send notifications.
 4. Turn on the alarm, choose the days and the time (or turn off «Misma hora todos los días», "Same time every day", to set a different time for each day).
 5. Tap **«Probar: sonará en 1 minuto»** ("Test: it will ring in 1 minute"), lock the iPhone, and check that it rings, that it can't be snoozed, and that it only turns off with the challenge. On iOS 18, with the iPhone not on silent.
 
@@ -312,7 +314,7 @@ With a **free Apple ID** you can sign apps for your own devices. The tools below
 |---|---|
 | Days and time (the same or one per day) | In the app |
 | Bundle ID | Fixed: `com.leonardoramirezr.leoneraalarm` (don't change it) |
-| Display name | `CFBundleDisplayName` in [`Info.plist`](Info.plist) (`Leonera Alarm`) |
+| Display name | `CFBundleDisplayName` in [`Info.plist`](Info.plist) (`Extreme Alarm`, the name under the icon; the App Store name, `Extreme Alarm by Leonera Labs`, is set in App Store Connect) |
 | Version (local) | `VERSION=… make build` |
 | Repeats, session length, unlocking, how early it can be turned off | `AlarmRules` in [`src/Core/AlarmMath.swift`](src/Core/AlarmMath.swift) |
 | Penalties, time per answer, possible challenge durations | `ChallengeRules` and `ChallengeDuration` in [`src/Core/MathChallenge.swift`](src/Core/MathChallenge.swift) |
@@ -320,6 +322,7 @@ With a **free Apple ID** you can sign apps for your own devices. The tools below
 | Statistics | [`src/Core/WakeStatistics.swift`](src/Core/WakeStatistics.swift) |
 | Sounds | `SOUNDS` list in [`scripts/generate_sounds.py`](scripts/generate_sounds.py) (each one must last less than 30 s) |
 | Icon | See [Icon](#icon): `python3 scripts/make_icon.py --use N`, or replace `Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png` (1024×1024) |
+| App Store screenshots | [`screenshots/`](screenshots): HTML and CSS rendered with Playwright, see [its README](screenshots/README.md) |
 
 ## Icon
 
@@ -347,6 +350,7 @@ It needs Pillow (`pip install pillow`) and Chrome or Chromium to convert the SVG
 ├── Resources/      # asset catalog with the icon
 ├── scripts/        # sounds, icon, App Store Connect API, IPA verification, and GitHub Pages
 ├── design/icons/   # the four icon options (SVG) and their preview
+├── screenshots/    # App Store screenshots: HTML + CSS + Playwright (see screenshots/README.md)
 ├── Info.plist
 ├── Vigilia.entitlements  # time-sensitive notifications (iOS 18)
 ├── project.yml     # Xcode project for XcodeGen (used by GitHub Actions)

@@ -1,0 +1,12 @@
+{
+  "name": "extreme-alarm-screenshots",
+  "private": true,
+  "description": "App Store screenshots for Extreme Alarm: HTML + CSS rendered with Playwright.",
+  "scripts": {
+    "render": "node render.js",
+    "render:all": "node render.js --size 6.9,6.5"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}
