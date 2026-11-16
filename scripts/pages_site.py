@@ -92,7 +92,7 @@ a {{ color: var(--accent); }}
 HELP = """<p class="card warn" id="warn" hidden></p>
 <div class="card" id="after" hidden>
 <p><strong>¿Tocaste «Instalar» en la ventana de Safari?</strong></p>
-<p class="muted">La app se descarga directo a la pantalla de inicio (o solo a la Biblioteca de apps, según tus ajustes), sin barra de progreso en Safari: desliza hacia abajo en la pantalla de inicio y busca «Vigilia».
+<p class="muted">La app se descarga directo a la pantalla de inicio (o solo a la Biblioteca de apps, según tus ajustes), sin barra de progreso en Safari: desliza hacia abajo en la pantalla de inicio y busca «Extreme Alarm».
 Si no apareció ninguna ventana, recarga esta página y vuelve a tocar el botón.</p>
 </div>
 <div class="card">

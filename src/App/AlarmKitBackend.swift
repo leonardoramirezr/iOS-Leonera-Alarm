@@ -110,7 +110,7 @@ final class AlarmKitBackend: AlarmBackend {
         switch kind {
         case .main: title = "¡Despierta! Haz el reto"
         case .retry: title = "Sigue sonando: haz el reto"
-        case .test: title = "Prueba de Vigilia"
+        case .test: title = "Prueba de Extreme Alarm"
         }
         let challengeButton = AlarmButton(text: "Resolver reto", textColor: .white, systemImageName: "brain.head.profile")
         if #available(iOS 26.1, *) {

@@ -149,7 +149,7 @@ final class NotificationAlarmBackend: NSObject, AlarmBackend, UNUserNotification
     func schedule(id: UUID, kind: AlarmKind, schedule: AlarmSchedule, sound: String?) async throws {
         let content = UNMutableNotificationContent()
         content.title = Self.title(for: kind)
-        content.body = "Vuelve a sonar hasta que completes el reto en Vigilia."
+        content.body = "Vuelve a sonar hasta que completes el reto en Extreme Alarm."
         if let sound {
             content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: sound))
         } else {
@@ -209,7 +209,7 @@ final class NotificationAlarmBackend: NSObject, AlarmBackend, UNUserNotification
         switch kind {
         case .main: return "¡Despierta! Haz el reto"
         case .retry: return "Sigue sonando: haz el reto"
-        case .test: return "Prueba de Vigilia"
+        case .test: return "Prueba de Extreme Alarm"
         }
     }
 

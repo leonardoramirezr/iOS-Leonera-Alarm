@@ -25,8 +25,8 @@ struct HomeView: View {
                 howItWorksSection
                 buildSection
             }
-            .navigationTitle("Vigilia")
-            .alert("Vigilia", isPresented: noticeIsPresented) {
+            .navigationTitle("Extreme Alarm")
+            .alert("Extreme Alarm", isPresented: noticeIsPresented) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(controller.notice ?? "")
@@ -40,7 +40,7 @@ struct HomeView: View {
     private var permissionSection: some View {
         Section {
             if controller.authorization == .denied {
-                Label("Vigilia no tiene permiso para programar alarmas.", systemImage: "exclamationmark.triangle.fill")
+                Label("Extreme Alarm no tiene permiso para programar alarmas.", systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
                 Button("Abrir Ajustes") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -49,9 +49,9 @@ struct HomeView: View {
                 }
             } else {
                 if controller.usesAlarmKit {
-                    Text("Vigilia necesita permiso para crear alarmas que suenen aunque el iPhone esté en silencio o en modo Concentración.")
+                    Text("Extreme Alarm necesita permiso para crear alarmas que suenen aunque el iPhone esté en silencio o en modo Concentración.")
                 } else {
-                    Text("En esta versión de iOS las alarmas son notificaciones: Vigilia necesita permiso para enviarlas con sonido.")
+                    Text("En esta versión de iOS las alarmas son notificaciones: Extreme Alarm necesita permiso para enviarlas con sonido.")
                 }
                 Button("Permitir alarmas") {
                     Task { _ = await controller.ensureAuthorized() }
@@ -195,7 +195,7 @@ struct HomeView: View {
         return Section {
             VStack(alignment: .leading, spacing: 10) {
                 if !controller.usesAlarmKit {
-                    Label("En iOS 18 la alarma es una notificación: con el iPhone en silencio solo vibra. Déjalo con sonido por la noche y, si usas una Concentración (como Dormir), permite en ella las notificaciones urgentes de Vigilia.",
+                    Label("En iOS 18 la alarma es una notificación: con el iPhone en silencio solo vibra. Déjalo con sonido por la noche y, si usas una Concentración (como Dormir), permite en ella las notificaciones urgentes de Extreme Alarm.",
                           systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                 }
@@ -279,7 +279,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("• Cada día suena un sonido distinto para que no te acostumbres.")
                     Text("• No existe posponer. Si la detienes desde la pantalla bloqueada o con los botones, vuelve a sonar cada minuto y luego más espaciado durante una hora.")
-                    Text("• Para apagarla de verdad abre Vigilia (botón «Resolver reto») y haz el reto de cálculo mental. El tiempo solo avanza mientras respondes bien y cada error resta 5 segundos.")
+                    Text("• Para apagarla de verdad abre Extreme Alarm (botón «Resolver reto») y haz el reto de cálculo mental. El tiempo solo avanza mientras respondes bien y cada error resta 5 segundos.")
                     Text("• Eliges la dificultad del reto (operaciones con números de 1, 2 o 3 dígitos) y cuánto dura: de 15 segundos a 10 minutos.")
                     Text("• Con «Cambiar siguiente alarma» eliges otra hora solo para la próxima alarma; ese día suena solo a esa hora y los demás días siguen igual.")
                     Text("• Desde 3 horas antes de que suene puedes desactivar esa alarma haciendo el mismo reto desde la app. Solo se salta esa vez; las siguientes suenan como siempre.")
@@ -300,6 +300,8 @@ struct HomeView: View {
     private var buildSection: some View {
         Section {
             LabeledContent("Build", value: BuildInfo.name)
+        } footer: {
+            Text("Extreme Alarm by Leonera Labs")
         }
     }
 
