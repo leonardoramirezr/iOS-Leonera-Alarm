@@ -3,12 +3,14 @@
 //
 //   node render.js                      # 6.9" (1320 x 2868), into output/1320x2868/
 //   node render.js --size 6.9,6.5       # several sizes
-//   node render.js --size 1290x2796     # any size whose sides divide by 3
+//   node render.js --size 1290x2796     # any size whose sides divide by the scale
 //   node render.js --only 02,05         # just some slides
 //   node render.js --out ~/Desktop/shots
+//   node render.js --size 660x1434 --scale 1 --format jpeg   # small web previews
 //
-// Each slide is laid out at a third of the final size and captured at device
-// scale factor 3, the way an iPhone draws it. See README.md.
+// Each slide is laid out at the final size divided by the scale (3 by default)
+// and captured at that device scale factor, the way an iPhone draws it. Every
+// size folder also gets a manifest.json listing its slides. See README.md.
 
 const fs = require("fs");
 const path = require("path");
@@ -17,7 +19,7 @@ const { pathToFileURL } = require("url");
 const { chromium } = require("playwright");
 
 const ROOT = __dirname;
-const SCALE = 3;
+const JPEG_QUALITY = 88;
 
 // Portrait sizes App Store Connect accepts for iPhone.
 const PRESETS = {
@@ -28,7 +30,7 @@ const PRESETS = {
 };
 
 function parseArgs(argv) {
-  const options = { sizes: ["6.9"], only: [], out: path.join(ROOT, "output") };
+  const options = { sizes: ["6.9"], only: [], out: path.join(ROOT, "output"), scale: 3, format: "png" };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = () => {
@@ -38,20 +40,24 @@ function parseArgs(argv) {
     if (arg === "--size") options.sizes = value().split(",");
     else if (arg === "--only") options.only = value().split(",");
     else if (arg === "--out") options.out = path.resolve(value());
+    else if (arg === "--scale") options.scale = Number(value());
+    else if (arg === "--format") options.format = value();
     else if (arg === "--help" || arg === "-h") {
-      console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(1, 9).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
+      console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(1, 10).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
       process.exit(0);
     } else throw new Error(`Unknown option ${arg} (see --help)`);
   }
+  if (!Number.isInteger(options.scale) || options.scale < 1) throw new Error("--scale must be a whole number of 1 or more");
+  if (!["png", "jpeg"].includes(options.format)) throw new Error("--format must be png or jpeg");
   return options;
 }
 
-function resolveSize(size) {
+function resolveSize(size, scale) {
   const preset = PRESETS[size];
   const match = /^(\d+)x(\d+)$/.exec(size);
   const [width, height] = preset || (match ? [Number(match[1]), Number(match[2])] : []);
   if (!width) throw new Error(`Unknown size ${size}: use ${Object.keys(PRESETS).join(", ")} or WIDTHxHEIGHT`);
-  if (width % SCALE || height % SCALE) throw new Error(`${width}x${height}: both sides must divide by ${SCALE}`);
+  if (width % scale || height % scale) throw new Error(`${width}x${height}: both sides must divide by the scale (${scale})`);
   return { width, height };
 }
 
@@ -164,7 +170,8 @@ function pngToRgb(buffer) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const sizes = options.sizes.map(resolveSize);
+  const sizes = options.sizes.map((size) => resolveSize(size, options.scale));
+  const extension = options.format === "jpeg" ? ".jpg" : ".png";
   const slides = findSlides(options.only);
   if (slides.length === 0) throw new Error("No slides matched");
 
@@ -175,21 +182,27 @@ async function main() {
       const dir = path.join(options.out, `${width}x${height}`);
       fs.mkdirSync(dir, { recursive: true });
       const context = await browser.newContext({
-        viewport: { width: width / SCALE, height: height / SCALE },
-        deviceScaleFactor: SCALE,
+        viewport: { width: width / options.scale, height: height / options.scale },
+        deviceScaleFactor: options.scale,
       });
       const page = await context.newPage();
+      const manifest = { width, height, slides: [] };
       for (const slide of slides) {
         await page.goto(pathToFileURL(path.join(ROOT, slide)).href, { waitUntil: "load" });
         await page.evaluate(() => document.fonts.ready);
-        for (const file of await page.$$eval(".frame.missing .screen", (imgs) => imgs.map((img) => img.getAttribute("src")))) {
-          missing.add(file);
-        }
-        const png = pngToRgb(await page.screenshot({ type: "png", animations: "disabled" }));
-        const outFile = path.join(dir, slide.replace(/\.html$/, ".png"));
-        fs.writeFileSync(outFile, png);
-        console.log(`${path.relative(process.cwd(), outFile)}  ${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`);
+        const missingHere = await page.$$eval(".frame.missing .screen", (imgs) => imgs.map((img) => img.getAttribute("src")));
+        missingHere.forEach((file) => missing.add(file));
+        const image =
+          options.format === "jpeg"
+            ? await page.screenshot({ type: "jpeg", quality: JPEG_QUALITY, animations: "disabled" })
+            : pngToRgb(await page.screenshot({ type: "png", animations: "disabled" }));
+        const name = slide.replace(/\.html$/, "");
+        const outFile = path.join(dir, name + extension);
+        fs.writeFileSync(outFile, image);
+        manifest.slides.push({ name, file: name + extension, missing_captures: missingHere });
+        console.log(`${path.relative(process.cwd(), outFile)}  ${width}x${height}`);
       }
+      fs.writeFileSync(path.join(dir, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
       await context.close();
     }
   } finally {

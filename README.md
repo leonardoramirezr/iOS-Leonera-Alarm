@@ -187,8 +187,9 @@ The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) runs o
 4. Checks the App Store Connect key and that at least one iOS device is registered ([`scripts/asc.py`](scripts/asc.py)).
 5. Archives with **automatic signing** (`-allowProvisioningUpdates` and the API key): Xcode creates or updates the App ID and the profiles.
 6. Exports the **Ad Hoc** IPA (`method=release-testing`): it uses the distribution certificate managed in the cloud by Apple and an Ad Hoc profile with all registered devices. Then it checks that each bundle has a valid Ad Hoc profile and a valid signature, and warns if any registered iPhone is not in the profile ([`scripts/verify-ipa.py`](scripts/verify-ipa.py)).
-7. Publishes it on **GitHub Pages** ([`scripts/publish-pages.sh`](scripts/publish-pages.sh)) and as a **Release**, and uploads it as an artifact.
-8. When it finishes (even if something failed), it **revokes the temporary development certificate** that `xcodebuild` creates on each run: only new "Apple Development" certificates in the runner's keychain, never the ones you already had.
+7. Renders the [App Store screenshots](screenshots/README.md) with Playwright (if this fails, the build is still published).
+8. Publishes it on **GitHub Pages** ([`scripts/publish-pages.sh`](scripts/publish-pages.sh)) and as a **Release**, and uploads it as an artifact.
+9. When it finishes (even if something failed), it **revokes the temporary development certificate** that `xcodebuild` creates on each run: only new "Apple Development" certificates in the runner's keychain, never the ones you already had.
 
 Labels:
 - **`main` → `0.x.0`** (`0.1.0`, `0.2.0`, `0.3.0`…): each push to `main` bumps the middle number by 1. It's the stable version, marked as *Latest*.
@@ -220,6 +221,7 @@ The key must be a **Team Key with the Admin role** (App Store Connect › Users 
 `https://leonardoramirezr.github.io/vigilia-ios/` (or the domain configured in Pages):
 - The home page lists all builds and has a button to install the **latest stable version**.
 - Each build has its own folder (`/0.3.0/`, `/build-41-c1e51fa/`) with the IPA, `manifest.plist`, `build.json`, and its own page with the install button (`itms-services://`).
+- Each build's page also shows the **App Store screenshots**, to open or download (one by one or in a ZIP). There is a single set in `/screenshots/`, from the latest build that published, and every build page shows it. See [screenshots/README.md](screenshots/README.md#on-the-install-page).
 - `gh-pages` is rewritten on every publish as **a single commit** (old IPAs don't pile up in the history). **All `main` versions** and the **last 50 builds** of other branches are kept. Each IPA weighs about 17 MB and GitHub Pages allows sites up to 1 GB, so with many `main` versions it's worth lowering `KEEP_BRANCH_BUILDS` in the workflow.
 
 Other ways to download the IPA: each build's Release (the most recent stable one is at `https://github.com/leonardoramirezr/vigilia-ios/releases/latest/download/Vigilia.ipa`) or *Actions* › the run › *Artifacts* › `Vigilia-ipa`.

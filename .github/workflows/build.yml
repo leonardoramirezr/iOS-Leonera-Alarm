@@ -251,6 +251,19 @@ jobs:
           path: build/export/${{ env.APP_NAME }}.ipa
           if-no-files-found: error
 
+      # App Store screenshots (screenshots/README.md), full size and small previews.
+      # Every build page on GitHub Pages shows the latest set. If this fails the
+      # build is still published, with the set that was already there.
+      - name: Render App Store screenshots
+        if: steps.signing.outputs.mode == 'signed'
+        continue-on-error: true
+        working-directory: screenshots
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --only-shell chromium
+          node render.js --out ../build/screenshots
+          node render.js --size 660x1434 --scale 1 --format jpeg --out ../build/screenshots
+
       - name: Publish to GitHub Pages
         id: pages
         if: steps.signing.outputs.mode == 'signed'
@@ -264,6 +277,8 @@ jobs:
           ICON: Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png
           APP_TITLE: ${{ env.APP_TITLE }}
           KEEP_BRANCH_BUILDS: "50"
+          SCREENSHOTS_FULL: build/screenshots/1320x2868
+          SCREENSHOTS_PREVIEW: build/screenshots/660x1434
         run: bash scripts/publish-pages.sh "build/export/${APP_NAME}.ipa"
 
       - name: Publish release

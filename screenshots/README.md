@@ -2,6 +2,8 @@
 
 Marketing screenshots for **Extreme Alarm by Leonera Labs**: every slide has a title, a subtitle, and a full app capture inside an iPhone frame. They are plain HTML and CSS pages with the captures embedded as images, rendered to PNG with [Playwright](https://playwright.dev).
 
+You don't have to render them yourself: every signed build renders them and shows them on its [install page](#on-the-install-page), ready to download.
+
 The slides are in Spanish, like the app.
 
 ## Files
@@ -13,7 +15,7 @@ screenshots/
 ├── slide.js       # fits the frame to the capture and flags missing captures
 ├── index.html     # preview of the five slides side by side (open it in a browser)
 ├── render.js      # Playwright script that writes the PNGs
-├── package.json
+├── package.json, package-lock.json
 ├── fonts/         # Inter and Inter Tight (SIL Open Font License, see fonts/OFL.txt)
 ├── captures/      # INPUT: the app screenshots you take on the iPhone
 └── output/        # OUTPUT: the rendered PNGs (not committed)
@@ -32,7 +34,7 @@ screenshots/
 ## Naming the files
 
 - **Captures (input):** `captures/<slide>.png`, the slide's file name with `.png` instead of `.html`: `01-intro.png`, `02-challenge.png`, `03-schedule.png`, `04-difficulty.png`, `05-statistics.png`. Lowercase, PNG, exactly as the iPhone saves it (don't crop or resize it).
-- **Rendered (output):** `output/<width>x<height>/<slide>.png`, for example `output/1320x2868/01-intro.png`. The number prefix is the order to upload them in App Store Connect.
+- **Rendered (output):** `output/<width>x<height>/<slide>.png`, for example `output/1320x2868/01-intro.png`. The number prefix is the order to upload them in App Store Connect. Each size folder also gets a `manifest.json` with its slides and the captures each one was missing.
 
 A slide whose capture is missing still renders, with a striped placeholder that names the file it expects, and `render.js` lists the missing files at the end. Don't upload those.
 
@@ -65,6 +67,7 @@ node render.js --size 1290x2796      # a custom size (both sides must divide by 
 node render.js --only 02,05          # only the slides whose name starts with 02 or 05
 node render.js --out ~/Desktop/shots # another output folder
 npm run render:all                   # 6.9" and 6.5"
+node render.js --size 660x1434 --scale 1 --format jpeg   # small JPEG previews (what the install page shows)
 ```
 
 | Preset | Size | App Store Connect display |
@@ -74,7 +77,26 @@ npm run render:all                   # 6.9" and 6.5"
 | `6.5` | 1284 × 2778 | iPhone 6.5" (only if you want a separate set) |
 | `6.5-xs` | 1242 × 2688 | iPhone 6.5" |
 
-Each page is laid out at a third of the final size (440 × 956 for 1320 × 2868) and captured at device scale factor 3, the way an iPhone draws it. The PNGs are written without an alpha channel (Chromium adds one), so App Store Connect never sees transparency. Check the current sizes in App Store Connect's [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications) before uploading.
+Each page is laid out at the final size divided by `--scale` (3 by default, so 440 × 956 for 1320 × 2868) and captured at that device scale factor, the way an iPhone draws it. The layout is proportional, so any scale gives the same picture, only sharper or smaller. `--format jpeg` writes JPEGs instead of PNGs. The PNGs are written without an alpha channel (Chromium adds one), so App Store Connect never sees transparency. Check the current sizes in App Store Connect's [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications) before uploading.
+
+## On the install page
+
+The GitHub Actions workflow ([`.github/workflows/build.yml`](../.github/workflows/build.yml), step *Render App Store screenshots*) renders the slides on every signed build, at 1320 × 2868 plus 660 × 1434 JPEG previews, and [`scripts/publish-pages.sh`](../scripts/publish-pages.sh) publishes them in `screenshots/` on GitHub Pages. Every build's page shows them in **«Capturas para el App Store»**: tap one to open it at full size, «Descargar» saves one, and «Descargar todas (ZIP)» saves the five.
+
+- There is **one set**, the one from the latest build that published: it replaces the previous set, and every build page (old ones too) shows it. The page says which build it came from.
+- If a capture is missing from `captures/`, the page says so: don't upload the slides that show the placeholder.
+- If rendering fails, the build is still published and the pages keep the previous set.
+- Unsigned builds aren't published to Pages, so they don't render them.
+
+On gh-pages:
+
+```
+screenshots/
+├── 1320x2868/01-intro.png …                    # full size, for App Store Connect
+├── preview/01-intro.jpg …                      # 660 × 1434 previews for the page
+├── app-store-screenshots-1320x2868.zip         # the five full-size PNGs
+└── screenshots.json                            # build it came from, slides, missing captures
+```
 
 ## Editing the slides
 
