@@ -5,7 +5,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>es</string>
     <key>CFBundleDisplayName</key>
-    <string>Leonera Alarm</string>
+    <string>Extreme Alarm</string>
     <key>CFBundleExecutable</key>
     <string>Vigilia</string>
     <key>CFBundleIdentifier</key>
@@ -16,6 +16,8 @@
     <array>
         <string>es</string>
     </array>
+    <!-- Not shown by iOS (CFBundleDisplayName is), but xcodebuild -exportArchive
+         names the IPA after it: keep it Vigilia so CI finds Vigilia.ipa. -->
     <key>CFBundleName</key>
     <string>Vigilia</string>
     <key>CFBundlePackageType</key>
@@ -27,7 +29,7 @@
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSAlarmKitUsageDescription</key>
-    <string>Vigilia programa tus alarmas para que suenen aunque el iPhone esté en silencio o en modo Concentración.</string>
+    <string>Extreme Alarm programa tus alarmas para que suenen aunque el iPhone esté en silencio o en modo Concentración.</string>
     <key>NSSupportsLiveActivities</key>
     <true/>
     <key>UIApplicationSceneManifest</key>

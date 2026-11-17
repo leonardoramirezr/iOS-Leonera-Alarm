@@ -10,6 +10,11 @@
 #   ICON                1024x1024 PNG used for the 57 and 512 px icons
 #   RELEASE_URL         link to the GitHub release
 #   KEEP_BRANCH_BUILDS  builds of other branches to keep (default 50; every main version is kept)
+#   SCREENSHOTS_FULL, SCREENSHOTS_PREVIEW
+#                       optional; folders where screenshots/render.js wrote the App Store
+#                       screenshots (full size and previews). They replace the single set
+#                       in screenshots/ that every build page shows; without them (or if
+#                       rendering failed) the set already on gh-pages stays.
 #   PAGES_URL           optional; otherwise from `gh api repos/{repo}/pages`,
 #                       falling back to https://<owner>.github.io/<repo>/
 #   GITHUB_REPOSITORY, GITHUB_REF_NAME, GITHUB_SHA, GITHUB_RUN_NUMBER, GITHUB_RUN_ID,
@@ -17,9 +22,9 @@
 #
 # gh-pages is rewritten every time as a single orphan commit, so old IPAs do not
 # pile up in its history. Folders without build.json are dropped (the branch may
-# have been created from the source code). If another build publishes at the
-# same time, the push (--force-with-lease) is rejected and everything is retried
-# on top of the new gh-pages.
+# have been created from the source code), except screenshots/. If another build
+# publishes at the same time, the push (--force-with-lease) is rejected and
+# everything is retried on top of the new gh-pages.
 set -euo pipefail
 
 IPA="${1:?usage: publish-pages.sh <ipa>}"
@@ -63,6 +68,20 @@ python3 "${SCRIPTS}/pages_site.py" build \
     --run-number "${GITHUB_RUN_NUMBER}" --stable "${STABLE}" --branch "${BRANCH}" \
     --commit "${GITHUB_SHA}" --commit-title "${COMMIT_TITLE}" --title "${APP_TITLE}" --run-url "${RUN_URL}" --release-url "${RELEASE_URL}"
 
+# The App Store screenshots of this build, if they were rendered.
+shots_dir=""
+if [ -f "${SCREENSHOTS_FULL:-}/manifest.json" ] && [ -f "${SCREENSHOTS_PREVIEW:-}/manifest.json" ]; then
+    shots_dir="${work}/screenshots"
+    # The screenshots must never stop the build from being published.
+    if ! python3 "${SCRIPTS}/pages_site.py" screenshots --dir "${shots_dir}" \
+        --full "${SCREENSHOTS_FULL}" --preview "${SCREENSHOTS_PREVIEW}" --tag "${TAG}"; then
+        echo "warning: could not prepare the App Store screenshots: keeping the ones already published" >&2
+        shots_dir=""
+    fi
+else
+    echo "No App Store screenshots in this build: keeping the ones already published"
+fi
+
 export GIT_AUTHOR_NAME="github-actions[bot]" GIT_COMMITTER_NAME="github-actions[bot]"
 export GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
 export GIT_COMMITTER_EMAIL="${GIT_AUTHOR_EMAIL}"
@@ -72,14 +91,14 @@ for attempt in 1 2 3 4 5 6; do
     rm -rf "${site}" "${work}/index"
     mkdir -p "${site}"
 
-    # Current gh-pages (if it exists): keep only the build folders.
+    # Current gh-pages (if it exists): keep only the build folders and screenshots/.
     lease=""
     if git fetch --quiet origin "+refs/heads/gh-pages:refs/remotes/origin/gh-pages" 2>/dev/null; then
         lease="$(git rev-parse refs/remotes/origin/gh-pages)"
         git archive "${lease}" | tar -x -C "${site}"
         for entry in "${site}"/* "${site}"/.[!.]*; do
             [ -e "${entry}" ] || continue
-            if [ ! -f "${entry}/build.json" ]; then
+            if [ ! -f "${entry}/build.json" ] && [ "$(basename "${entry}")" != screenshots ]; then
                 rm -rf "${entry}"
             fi
         done
@@ -87,6 +106,10 @@ for attempt in 1 2 3 4 5 6; do
 
     rm -rf "${site:?}/${TAG}"
     cp -R "${build_dir}" "${site}/${TAG}"
+    if [ -n "${shots_dir}" ]; then
+        rm -rf "${site:?}/screenshots"
+        cp -R "${shots_dir}" "${site}/screenshots"
+    fi
     python3 "${SCRIPTS}/pages_site.py" index --dir "${site}" --base-url "${PAGES_URL}" \
         --keep-branch-builds "${KEEP_BRANCH_BUILDS}"
 

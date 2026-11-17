@@ -16,7 +16,10 @@ permissions:
   pages: read # gh api repos/{repo}/pages
 
 env:
+  # Code name: Xcode project, scheme, .app and .ipa file names.
   APP_NAME: Vigilia
+  # Name people see: install page and release titles.
+  APP_TITLE: Extreme Alarm by Leonera Labs
 
 jobs:
   build:
@@ -248,6 +251,19 @@ jobs:
           path: build/export/${{ env.APP_NAME }}.ipa
           if-no-files-found: error
 
+      # App Store screenshots (screenshots/README.md), full size and small previews.
+      # Every build page on GitHub Pages shows the latest set. If this fails the
+      # build is still published, with the set that was already there.
+      - name: Render App Store screenshots
+        if: steps.signing.outputs.mode == 'signed'
+        continue-on-error: true
+        working-directory: screenshots
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --only-shell chromium
+          node render.js --out ../build/screenshots
+          node render.js --size 660x1434 --scale 1 --format jpeg --out ../build/screenshots
+
       - name: Publish to GitHub Pages
         id: pages
         if: steps.signing.outputs.mode == 'signed'
@@ -259,8 +275,10 @@ jobs:
           STABLE: ${{ steps.tag.outputs.stable }}
           BUNDLE_ID: ${{ steps.ids.outputs.bundle_id }}
           ICON: Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png
-          APP_TITLE: ${{ env.APP_NAME }}
+          APP_TITLE: ${{ env.APP_TITLE }}
           KEEP_BRANCH_BUILDS: "50"
+          SCREENSHOTS_FULL: build/screenshots/1320x2868
+          SCREENSHOTS_PREVIEW: build/screenshots/660x1434
         run: bash scripts/publish-pages.sh "build/export/${APP_NAME}.ipa"
 
       - name: Publish release
@@ -285,7 +303,7 @@ jobs:
             gh release create "${TAG}" "${ipa}" \
               --target "${GITHUB_SHA}" \
               --latest \
-              --title "${APP_NAME} ${TAG}" \
+              --title "${APP_TITLE} ${TAG}" \
               --notes "${notes}" \
               --generate-notes
           else
@@ -293,7 +311,7 @@ jobs:
               --target "${GITHUB_SHA}" \
               --prerelease \
               --latest=false \
-              --title "${APP_NAME} ${TAG} (${branch})" \
+              --title "${APP_TITLE} ${TAG} (${branch})" \
               --notes "Build de prueba compilada desde la rama \`${branch}\`, commit ${GITHUB_SHA::7}; no es la versión estable. ${notes}"
           fi
 

@@ -85,7 +85,7 @@ final class AlarmController: ObservableObject {
 
     /// Where the permission is turned on in the Settings app.
     var permissionSettingsPath: String {
-        usesAlarmKit ? "Ajustes > Vigilia > Alarmas" : "Ajustes > Vigilia > Notificaciones"
+        usesAlarmKit ? "Ajustes > Extreme Alarm > Alarmas" : "Ajustes > Extreme Alarm > Notificaciones"
     }
 
     /// After a reboot iOS keeps app data encrypted until the first unlock, and an
