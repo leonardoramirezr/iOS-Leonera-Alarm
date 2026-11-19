@@ -1,0 +1,18 @@
+{
+  "tag": "0.10.0",
+  "version": "0.10.0",
+  "build_number": "53",
+  "run_number": 53,
+  "stable": true,
+  "branch": "main",
+  "commit": "743ab2a716f4de949092e6f22ee2ff86c9c1b2fe",
+  "commit_title": "Mostrar el sonido que sonó en Últimos despertares (#16)",
+  "bundle_id": "com.leonardoramirezr.leoneraalarm",
+  "title": "Vigilia",
+  "date": "2026-10-22T13:35:02Z",
+  "ipa": "Vigilia.ipa",
+  "run_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/actions/runs/39787551441",
+  "release_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/releases/tag/0.10.0",
+  "manifest_url": "https://leonardoramirezr.github.io/iOS-Leonera-Alarm/0.10.0/manifest.plist",
+  "install_url": "itms-services://?action=download-manifest&url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2F0.10.0%2Fmanifest.plist"
+}

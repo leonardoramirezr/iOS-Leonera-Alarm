@@ -1,0 +1,18 @@
+{
+  "tag": "build-56-d65a6e6",
+  "version": "0.11.0",
+  "build_number": "56",
+  "run_number": 56,
+  "stable": false,
+  "branch": "claude/emergency-siren-sounds-3pmggc",
+  "commit": "d65a6e66bdaeb42405cc4583f1ab07996ca605ad",
+  "commit_title": "Replace the klaxon, buzzer, dive alarm and smoke detector too",
+  "bundle_id": "com.leonardoramirezr.leoneraalarm",
+  "title": "Vigilia",
+  "date": "2026-10-22T14:44:52Z",
+  "ipa": "Vigilia.ipa",
+  "run_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/actions/runs/39797796800",
+  "release_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/releases/tag/build-56-d65a6e6",
+  "manifest_url": "https://leonardoramirezr.github.io/iOS-Leonera-Alarm/build-56-d65a6e6/manifest.plist",
+  "install_url": "itms-services://?action=download-manifest&url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-56-d65a6e6%2Fmanifest.plist"
+}

@@ -1,0 +1,17 @@
+{
+  "tag": "build-34-01131a5",
+  "version": "0.1.0",
+  "build_number": "34",
+  "run_number": 34,
+  "stable": false,
+  "branch": "claude/sleepy-pascal-crfkou",
+  "commit": "01131a5c0da7257bbd1ec7705166538a4d59773a",
+  "bundle_id": "com.leonardoramirezr.leoneraalarm",
+  "title": "Vigilia",
+  "date": "2026-10-14T00:03:01Z",
+  "ipa": "Vigilia.ipa",
+  "run_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/actions/runs/38487605087",
+  "release_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/releases/tag/build-34-01131a5",
+  "manifest_url": "https://leonardoramirezr.github.io/iOS-Leonera-Alarm/build-34-01131a5/manifest.plist",
+  "install_url": "itms-services://?action=download-manifest&url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-34-01131a5%2Fmanifest.plist"
+}

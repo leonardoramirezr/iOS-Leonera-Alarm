@@ -1,0 +1,43 @@
+{
+  "tag": "build-69-b76e13d",
+  "date": "2026-11-19T18:05:29Z",
+  "width": 1320,
+  "height": 2868,
+  "preview_width": 660,
+  "preview_height": 1434,
+  "zip": "app-store-screenshots-1320x2868.zip",
+  "slides": [
+    {
+      "name": "01-intro",
+      "full": "1320x2868/01-intro.png",
+      "preview": "preview/01-intro.jpg",
+      "missing_captures": [
+        "captures/01-intro.png"
+      ]
+    },
+    {
+      "name": "02-challenge",
+      "full": "1320x2868/02-challenge.png",
+      "preview": "preview/02-challenge.jpg",
+      "missing_captures": []
+    },
+    {
+      "name": "03-schedule",
+      "full": "1320x2868/03-schedule.png",
+      "preview": "preview/03-schedule.jpg",
+      "missing_captures": []
+    },
+    {
+      "name": "04-difficulty",
+      "full": "1320x2868/04-difficulty.png",
+      "preview": "preview/04-difficulty.jpg",
+      "missing_captures": []
+    },
+    {
+      "name": "05-statistics",
+      "full": "1320x2868/05-statistics.png",
+      "preview": "preview/05-statistics.jpg",
+      "missing_captures": []
+    }
+  ]
+}
