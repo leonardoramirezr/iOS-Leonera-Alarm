@@ -1,0 +1,18 @@
+{
+  "tag": "build-69-b76e13d",
+  "version": "0.14.0",
+  "build_number": "69",
+  "run_number": 69,
+  "stable": false,
+  "branch": "claude/modest-brown-5gcrlk",
+  "commit": "b76e13d115d7de0099417be9255ffc4bcb11ece3",
+  "commit_title": "Quitar el parecido a disparos de cuatro sonidos",
+  "bundle_id": "com.leonardoramirezr.leoneraalarm",
+  "title": "Extreme Alarm by Leonera Labs",
+  "date": "2026-11-19T18:05:28Z",
+  "ipa": "Vigilia.ipa",
+  "run_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/actions/runs/44583479404",
+  "release_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/releases/tag/build-69-b76e13d",
+  "manifest_url": "https://leonardoramirezr.github.io/iOS-Leonera-Alarm/build-69-b76e13d/manifest.plist",
+  "install_url": "itms-services://?action=download-manifest&url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-69-b76e13d%2Fmanifest.plist"
+}

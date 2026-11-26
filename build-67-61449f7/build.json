@@ -1,0 +1,18 @@
+{
+  "tag": "build-67-61449f7",
+  "version": "0.14.0",
+  "build_number": "67",
+  "run_number": 67,
+  "stable": false,
+  "branch": "claude/determined-newton-wqk1jg",
+  "commit": "61449f7d27234a0425207042366532bd8f54c590",
+  "commit_title": "Keep CFBundleName as Vigilia so the exported IPA keeps its name",
+  "bundle_id": "com.leonardoramirezr.leoneraalarm",
+  "title": "Extreme Alarm by Leonera Labs",
+  "date": "2026-11-17T11:48:45Z",
+  "ipa": "Vigilia.ipa",
+  "run_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/actions/runs/44076730108",
+  "release_url": "https://github.com/leonardoramirezr/iOS-Leonera-Alarm/releases/tag/build-67-61449f7",
+  "manifest_url": "https://leonardoramirezr.github.io/iOS-Leonera-Alarm/build-67-61449f7/manifest.plist",
+  "install_url": "itms-services://?action=download-manifest&url=https%3A%2F%2Fleonardoramirezr.github.io%2FiOS-Leonera-Alarm%2Fbuild-67-61449f7%2Fmanifest.plist"
+}
